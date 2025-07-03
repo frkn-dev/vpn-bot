@@ -1,3 +1,6 @@
+import { WireguardResponse, XrayResponse } from "./types/conn";
+
+
 export function generatePassword(length = 12): string {
   const chars =
     'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+{}:"<>?|[];\',./`~';
@@ -7,4 +10,11 @@ export function generatePassword(length = 12): string {
     password += chars[idx];
   }
   return password;
+}
+
+
+export function isXrayResponse(
+  proto: WireguardResponse | XrayResponse
+): proto is XrayResponse {
+  return (proto as XrayResponse).Xray !== undefined;
 }

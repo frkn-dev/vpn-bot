@@ -1,9 +1,15 @@
-import { Telegraf } from 'telegraf';
 import axios from 'axios';
+import { Buffer } from "buffer";
 import * as dotenv from 'dotenv';
-import { BotState } from './state';
-import { startHandler } from './handlers/start';
+import QRCode from 'qrcode';
+import { Telegraf } from 'telegraf';
 import { protoHandler } from './handlers/proto';
+import { startHandler } from './handlers/start';
+import { getOrCreateVlessGrpcConnection, getOrCreateVlessXtlsConnection, mapInboundToVless, vlessXtlsConn, vlessGrpcConn } from './proto/vless';
+import { mapInboundToVmess } from './proto/vmess';
+import { generateWireguardConfig, getOrCreateWireguardConnection } from './proto/wireguard';
+import { BotState } from './state';
+import { getOrCreateVmessConnection, vmessTcpConn } from './proto/vmess';
 
 dotenv.config();
 
@@ -65,7 +71,7 @@ const botState = new BotState(API_BASE_URL, API_AUTH_TOKEN);
 
         const nodes = (await botState.getNodes(env))?.filter(n => n.status === 'Online') ?? [];
 
-        const inbounds: { nodeLabel: string; tag: string; port: number }[] = [];
+        const inbounds: { nodeLabel: string; nodeId: string, tag: string; port: number }[] = [];
 
         for (const node of nodes) {
           for (const [tag, inbound] of Object.entries(node.inbounds)) {
@@ -76,6 +82,7 @@ const botState = new BotState(API_BASE_URL, API_AUTH_TOKEN);
             ) {
               inbounds.push({
                 nodeLabel: node.label || node.hostname || 'Unknown',
+                nodeId: node.uuid,
                 tag,
                 port: inbound.port,
               });
@@ -87,13 +94,13 @@ const botState = new BotState(API_BASE_URL, API_AUTH_TOKEN);
           await ctx.editMessageText(`Для протокола ${proto} нет доступных конфигураций.`);
           return await ctx.answerCbQuery();
         }
-
+ 
         const buttons = inbounds.map(inb => ([{
-          text: `${inb.nodeLabel} (${inb.tag}:${inb.port})`,
-          callback_data: `inbound_${inb.tag}_${inb.port}`,
+          text: `${inb.nodeLabel} (${inb.tag}:${inb.nodeId.slice(0, 8)})`,
+          callback_data: `inbound_${inb.tag}_${inb.nodeId}`,
         }]));
 
-        await ctx.editMessageText(`Инбаунды протокола ${proto}:`, {
+        await ctx.editMessageText(`Доступные сервера ${proto}:`, {
           reply_markup: { inline_keyboard: buttons },
         });
 
@@ -105,7 +112,7 @@ const botState = new BotState(API_BASE_URL, API_AUTH_TOKEN);
         const parts = callbackData.split('_');
         if (parts.length >= 3) {
           const tag = parts[1];
-          const port = parts[2];
+          const nodeId = parts[2];
           const user = ctx.from;
           if (!user || !user.username) {
             await ctx.answerCbQuery('Не удалось определить пользователя.');
@@ -127,9 +134,135 @@ const botState = new BotState(API_BASE_URL, API_AUTH_TOKEN);
           };
 
           try {
-            const res = await botState.createConnection(connectionData);
-            if (res) {
-              await ctx.editMessageText(`Соединение с протоколом ${tag} создано!`);
+
+            console.log("TAG", tag);
+  
+            const connections = await botState.getUserConnections(userEntry.id);
+
+            if (tag === 'VlessXtls') {
+              const connection = await getOrCreateVlessXtlsConnection(connections, async () => {
+                const res = await botState.createConnection(connectionData);
+                if (res?.status === 200) {
+                  return res.response;
+                }
+                throw new Error('Ошибка создания VlessXtls-соединения');
+              });
+
+              const node = await botState.getNode(nodeId);
+              const inbound = node?.inbounds.VlessXtls;
+              const conn_id = connection.id;
+              if (inbound) {
+                const vlessXtlsInb = mapInboundToVless(inbound);
+
+                if (vlessXtlsInb && node?.address && conn_id) {
+                  const vlessXtlsConfig = vlessXtlsConn(conn_id, node?.address, vlessXtlsInb, node?.label);
+                  console.log(vlessXtlsConfig);
+                  await ctx.editMessageText(
+                    `Ваша VlessXtls ссылка:\n\`\`\`\n${vlessXtlsConfig}\n\`\`\``,
+                    { parse_mode: "MarkdownV2" }
+                  );
+                }
+              }
+            } 
+
+            else if (tag === 'VlessGrpc') {
+              const connection = await getOrCreateVlessGrpcConnection(connections, async () => {
+                const res = await botState.createConnection(connectionData);
+                if (res?.status === 200) {
+                  return res.response;
+                }
+                throw new Error('Ошибка создания VlessGrpc-соединения');
+              });
+
+              const node = await botState.getNode(nodeId);
+              const inbound = node?.inbounds.VlessGrpc;
+              const conn_id = connection.id;
+              if (inbound && conn_id) {
+                const vlessGrpcInb = mapInboundToVless(inbound);
+
+                if (vlessGrpcInb && node?.address && conn_id) {
+                  console.log("connection:", connection);
+
+                  const vlessGrpcConfig = vlessGrpcConn(conn_id, node?.address, vlessGrpcInb, node?.label);
+                  console.log(vlessGrpcConfig);
+                  await ctx.editMessageText(
+                    `Ваша VlessGrpc ссылка:\n\`\`\`\n${vlessGrpcConfig}\n\`\`\``,
+                    { parse_mode: "MarkdownV2" }
+                  );
+                }
+              }
+            } 
+
+            else if (tag === 'Vmess') {
+              const connection = await getOrCreateVmessConnection(connections, async () => {
+                const res = await botState.createConnection(connectionData);
+                if (res?.status === 200) {
+                  return res.response;
+                }
+                throw new Error('Ошибка создания Vmess-соединения');
+              });
+
+              const node = await botState.getNode(nodeId);
+              const inbound = node?.inbounds.Vmess;
+              const conn_id = connection.id;
+              if (inbound && conn_id) {
+                const vmessInb = mapInboundToVmess(inbound);
+
+                if (vmessInb && node?.address && conn_id) {
+                  console.log("connection:", connection);
+
+                  const vmessConfig = vmessTcpConn(conn_id, node?.address, vmessInb, node?.label);
+                  console.log(vmessConfig);
+                  await ctx.editMessageText(
+                    `Ваша Vmess ссылка:\n\`\`\`\n${vmessConfig}\n\`\`\``,
+                    { parse_mode: "MarkdownV2" }
+                  );
+                }
+              }
+            } 
+
+            else if (tag === 'Wireguard' && nodeId) {
+              const connection = await getOrCreateWireguardConnection(connections, nodeId, async () => {
+                const res = await botState.createConnection(connectionData);
+                if (res?.status === 200) {
+                  return res.response;
+                }
+                throw new Error('Ошибка создания Wireguard-соединения');
+              });
+
+              const connNodeId = connection.node_id;
+              if (connNodeId) {
+                const node = await botState.getNode(connNodeId);
+                const ipv4 = node?.address;
+                const privkey = node?.inbounds.Wireguard.wg?.privkey;
+                const port = node?.inbounds.Wireguard.wg?.port;
+
+                if (ipv4 && privkey && port) {
+                  const wgConfig = generateWireguardConfig(ipv4, port, connection, node?.label, privkey);
+
+                  console.log("WG CONFIG\n", wgConfig);
+
+                  if (wgConfig) {
+                    await ctx.replyWithDocument({
+                      source: Buffer.from(wgConfig, 'utf-8'),
+                      filename: 'wg0.conf',
+                    });
+
+                    const qrBuffer = await QRCode.toBuffer(wgConfig, {
+                      errorCorrectionLevel: 'H',
+                      type: 'png',
+                      margin: 1,
+                      scale: 6,
+                    });
+
+                    await ctx.replyWithPhoto({ source: qrBuffer }, { caption: 'QR-код для WireGuard-конфига 🧷' });
+                    await ctx.editMessageText(
+                      `Ваш Wireguard конфиг`,
+                      { parse_mode: "MarkdownV2" }
+                    );
+                  }
+                }
+              }
             } else {
               await ctx.editMessageText(`Ошибка создания соединения`);
             }

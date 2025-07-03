@@ -1,11 +1,11 @@
 import { Mutex } from 'async-mutex';
-import axios, { AxiosInstance } from 'axios';
+import axios from 'axios';
 import { RegisterResult, User } from './types';
 
-import { NodeResponse, ProtoTag } from './types/node';
-import { Conn } from './types/conn';
+import { ConnectionResponse, ConnectionsResponseEntryRaw, CreateConnectionRequest, CreateConnectionResponse } from './types/conn';
+import { NodeResponse } from './types/node';
 
-import { generatePassword } from './utils'
+import { generatePassword } from './utils';
 
 export class BotState {
   private users: Map<string, User> = new Map();
@@ -111,22 +111,19 @@ export class BotState {
     });
   }
 
-  async getUserConnections(userId: string): Promise<[string, Conn][]> {
-    try {
-      const res = await this.api.get<{
-        status: number;
-        message: string;
-        response: [string, Conn][];
-      }>(`/user/${userId}/connections`);
+  async getUserConnections(userId: string): Promise<ConnectionResponse[]> {
+    const res = await this.api.get<{
+      status: number;
+      message: string;
+      response: ConnectionsResponseEntryRaw[];
+    }>(`/user/connections?user_id=${userId}`);
 
-      if (res.data.status === 200) {
-        return res.data.response;
-      }
-      return [];
-    } catch (e) {
-      console.error('Error fetching connections', e);
-      return [];
-    }
+    if (res.data.status !== 200) return [];
+
+    return res.data.response.map(([id, conn]) => ({
+      ...conn,
+      id,
+    }));
   }
 
   async getNodes(env: string): Promise<NodeResponse[] | null> {
@@ -144,29 +141,34 @@ export class BotState {
     }
   }
 
-  async createConnection(payload: {
-    env: string;
-    trial: boolean;
-    limit: number;
-    proto: string;
-    user_id: string;
-    node_id?: string; 
-  }): Promise<boolean> {
+  async getNode(id: string): Promise<NodeResponse | null> {
     try {
-      const res = await this.api.post<{
+      const res = await this.api.get<{
         status: number;
         message: string;
-      }>('/connection', payload);
+        response: NodeResponse;
+      }>(`/node?node_id=${id}`);
+
+      return res.data.status === 200 ? res.data.response : null;
+    } catch (e) {
+      console.error('Error fetching nodes', e);
+      return null;
+    }
+  }
+
+  async createConnection(payload: CreateConnectionRequest): Promise<CreateConnectionResponse | null> {
+    try {
+      const res = await this.api.post<CreateConnectionResponse>('/connection', payload);
 
       if (res.data.status === 200) {
-        return true;
+        return res.data;
       } else {
         console.warn('Failed to create connection:', res.data.message);
-        return false;
+        return null;
       }
     } catch (e) {
       console.error('Error creating connection:', e);
-      return false;
+      return null;
     }
   }
 

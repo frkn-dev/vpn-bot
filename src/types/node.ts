@@ -5,6 +5,39 @@ export enum NodeStatus {
   Offline = 'Offline',
 }
 
+export type ProtoResponse = {
+  Vless?: {
+    tag: string;
+    port: number;
+    stream_settings?: StreamSettings;
+  };
+  Vmess?: {
+    tag: string;
+    port: number;
+    stream_settings?: StreamSettings;
+  };
+};
+
+export type StreamSettings = {
+  tcpSettings?: TcpSettings;
+  realitySettings?: RealitySettings;
+  grpcSettings?: GrpcSettings;
+};
+
+export type TcpHeader = {
+  type: string;
+  request?: TcpRequest;
+};
+
+export type TcpRequest = {
+  method: string;
+  path: string[];
+  headers?: Record<string, string[]>;
+};
+
+export type GrpcSettings = {
+  serviceName: string;
+};
 
 export interface RealitySettings {
   serverNames: string[];
@@ -25,10 +58,6 @@ export interface TcpSettings {
       };
     };
   };
-}
-
-export interface GrpcSettings {
-  serviceName: string;
 }
 
 export interface WgSettings {

@@ -1,49 +1,57 @@
-export type UUID = string; 
+export type CreateConnectionRequest = {
+	env: string;
+	trial: boolean;
+	limit: number;
+	proto: string;
+	user_id: string;
+	node_id?: string;
+};
 
-export type Proto = 'Vmess' | 'VlessGrpc' | 'VlessXtls' | 'Wireguard';
-export type Status = 'Active' | 'Inactive' | 'Disabled';
+export type WireguardResponse = {
+	Wireguard: {
+		param: {
+			keys: {
+				privkey: string;
+				pubkey: string;
+			};
+			address: {
+				ip: string;
+				cidr: number;
+			};
+		};
+		node_id: string;
+	};
+};
 
-export interface Stat {
-  rx: number; 
-  tx: number; 
+export type XrayResponse = {
+	Xray: string;
+};
 
-export class Conn {
-  trial: boolean;
-  limit: number;
-  env: string;
-  proto: Proto;
-  status: Status;
-  stat: Stat;
-  user_id?: UUID;
-  created_at: string;
-  modified_at: string;
-  is_deleted: boolean;
-  node_id?: UUID;
+export type ConnectionResponse = {
+	id: string,
+	trial: boolean;
+	limit: number;
+	env: string;
+	proto: WireguardResponse | XrayResponse;
+	status: string;
+	stat: {
+		downlink: number;
+		uplink: number;
+		online: number;
+	};
+	user_id: string;
+	created_at: string;
+	modified_at: string;
+	is_deleted: boolean;
+	node_id: string | null;
+};
 
-  constructor(data: {
-    trial: boolean;
-    limit: number;
-    env: string;
-    proto: Proto;
-    status: Status;
-    stat: Stat;
-    user_id?: UUID;
-    created_at: string;
-    modified_at: string;
-    is_deleted: boolean;
-    node_id?: UUID;
-  }) {
-    this.trial = data.trial;
-    this.limit = data.limit;
-    this.env = data.env;
-    this.proto = data.proto;
-    this.status = data.status;
-    this.stat = data.stat;
-    this.user_id = data.user_id;
-    this.created_at = data.created_at;
-    this.modified_at = data.modified_at;
-    this.is_deleted = data.is_deleted;
-    this.node_id = data.node_id;
-  }
-}
+export type CreateConnectionResponse = {
+	status: number;
+	message: string;
+	response: ConnectionResponse;
+};
 
+export type ConnectionsResponseEntry = [string, ConnectionResponse];
+export type ConnectionResponseRaw = Omit<ConnectionResponse, 'id'>;
+export type ConnectionsResponseEntryRaw = [string, ConnectionResponseRaw];
