@@ -1,19 +1,18 @@
-
-import { ConnectionResponse, WireguardResponse, XrayResponse } from "../types/conn";
-import { Inbound, ProtoResponse } from '../types/node';
+import { ConnectionResponse } from "../types/conn";
+import { Inbound, ProtoResponse } from "../types/node";
 import { isXrayResponse } from "../utils";
 
 export function vmessTcpConn(
-	connId: string,     
-	ipv4: string,       
+	connId: string,
+	ipv4: string,
 	inbound: ProtoResponse["Vmess"],
-	label: string
+	label: string,
 ): string {
-
 	if (!inbound) {
 		throw new Error("vlessProto is undefined");
 	}
-	if (!inbound.stream_settings) throw new Error("VMESS: missing stream_settings");
+	if (!inbound.stream_settings)
+		throw new Error("VMESS: missing stream_settings");
 	const tcpSettings = inbound.stream_settings.tcpSettings;
 	if (!tcpSettings) throw new Error("VMESS: missing tcpSettings");
 	const header = tcpSettings.header;
@@ -24,7 +23,8 @@ export function vmessTcpConn(
 	if (!headers) throw new Error("VMESS: missing headers");
 
 	const hostArray = headers["Host"];
-	if (!hostArray || hostArray.length === 0) throw new Error("VMESS: missing Host header");
+	if (!hostArray || hostArray.length === 0)
+		throw new Error("VMESS: missing Host header");
 	const host = hostArray[0];
 
 	const path = req.path?.[0];
@@ -55,11 +55,11 @@ export function vmessTcpConn(
 
 export async function getOrCreateVmessConnection(
 	response: ConnectionResponse[],
-	createConnection: () => Promise<ConnectionResponse>
+	createConnection: () => Promise<ConnectionResponse>,
 ): Promise<ConnectionResponse> {
 	const vmessConnections = response.filter((conn) => {
 		if (isXrayResponse(conn.proto)) {
-			return conn.proto.Xray === 'Vmess';
+			return conn.proto.Xray === "Vmess";
 		}
 		return false;
 	});
@@ -79,12 +79,13 @@ export function mapInboundToVmess(inbound: Inbound): ProtoResponse["Vmess"] {
 		port: inbound.port,
 		stream_settings: inbound.stream_settings
 			? {
-				tcpSettings: inbound.stream_settings.tcpSettings ?? undefined,
-				realitySettings: inbound.stream_settings.realitySettings ?? undefined,
-				grpcSettings: inbound.stream_settings.grpcSettings ?? undefined,
-			}
+					tcpSettings:
+						inbound.stream_settings.tcpSettings ?? undefined,
+					realitySettings:
+						inbound.stream_settings.realitySettings ?? undefined,
+					grpcSettings:
+						inbound.stream_settings.grpcSettings ?? undefined,
+				}
 			: undefined,
-		
 	};
 }
-

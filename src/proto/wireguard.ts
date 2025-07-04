@@ -1,18 +1,14 @@
+import { ConnectionResponse } from "../types/conn";
 
-import { ConnectionResponse } from '../types/conn';
-import { ConnectionsResponseEntry } from '../types/conn';
-
-
-export function generateWireguardConfig(
+export function wireguardConn(
 	ipv4: string,
 	port: number,
 	connection: ConnectionResponse,
 	label: string,
 	privateKey: string,
 ): string | null {
- 
-	if (!('Wireguard' in connection.proto)) {
-		console.error('Wrong proto', connection.proto);
+	if (!("Wireguard" in connection.proto)) {
+		console.error("Wrong proto", connection.proto);
 		return null;
 	}
 
@@ -21,7 +17,7 @@ export function generateWireguardConfig(
 	const serverPubKey = wg.param.keys.pubkey;
 	const clientIp = `${wg.param.address.ip}/${wg.param.address.cidr}`;
 	const host = ipv4;
- 
+
 	const config = `[Interface]
 PrivateKey = ${privateKey}
 Address    = ${clientIp}
@@ -39,13 +35,12 @@ PersistentKeepalive = 25
 	return config;
 }
 
-
 export async function getOrCreateWireguardConnection(
 	response: ConnectionResponse[],
-	nodeId: string, 
-	createConnection: () => Promise<ConnectionResponse>
+	nodeId: string,
+	createConnection: () => Promise<ConnectionResponse>,
 ): Promise<ConnectionResponse> {
-	const wireguardConns = response.filter((conn) => 'Wireguard' in conn.proto);
+	const wireguardConns = response.filter((conn) => "Wireguard" in conn.proto);
 	const connection = wireguardConns.find((conn) => conn.node_id === nodeId);
 
 	if (connection) {

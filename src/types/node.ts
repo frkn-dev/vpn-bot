@@ -1,8 +1,8 @@
-export type ProtoTag = 'Vmess' | 'VlessGrpc' | 'VlessXtls' | 'Wireguard';
+export type ProtoTag = "Vmess" | "VlessGrpc" | "VlessXtls" | "Wireguard";
 
 export enum NodeStatus {
-  Online = 'Online',
-  Offline = 'Offline',
+  Online = "Online",
+  Offline = "Offline",
 }
 
 export type ProtoResponse = {

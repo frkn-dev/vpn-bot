@@ -28,7 +28,7 @@ export type XrayResponse = {
 };
 
 export type ConnectionResponse = {
-	id: string,
+	id: string;
 	trial: boolean;
 	limit: number;
 	env: string;
@@ -53,5 +53,5 @@ export type CreateConnectionResponse = {
 };
 
 export type ConnectionsResponseEntry = [string, ConnectionResponse];
-export type ConnectionResponseRaw = Omit<ConnectionResponse, 'id'>;
+export type ConnectionResponseRaw = Omit<ConnectionResponse, "id">;
 export type ConnectionsResponseEntryRaw = [string, ConnectionResponseRaw];
