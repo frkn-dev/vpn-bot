@@ -54,20 +54,20 @@ export function vmessTcpConn(
 }
 
 export async function getOrCreateVmessConnection(
-	response: ConnectionResponse[],
+	response: ConnectionResponse[] | null | undefined,
 	createConnection: () => Promise<ConnectionResponse>,
 ): Promise<ConnectionResponse> {
-	const vmessConnections = response.filter((conn) => {
-		if (isXrayResponse(conn.proto)) {
-			return conn.proto.Xray === "Vmess";
-		}
-		return false;
-	});
+	if (!response || response.length === 0) {
+		return await createConnection();
+	}
 
-	console.log("VMESS", vmessConnections[1]);
+	const vmessConnection = response.find(
+		(conn) => isXrayResponse(conn.proto) && conn.proto.Xray === "Vmess",
+	);
 
-	if (vmessConnections.length > 0) {
-		return vmessConnections[0];
+	if (vmessConnection) {
+		console.log("VMESS", vmessConnection);
+		return vmessConnection;
 	}
 
 	return await createConnection();

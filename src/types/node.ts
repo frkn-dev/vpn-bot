@@ -70,6 +70,7 @@ export interface WgSettings {
   };
   address: string;
   port: number;
+  dns: string[];
 }
 
 export interface Inbound {

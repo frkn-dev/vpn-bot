@@ -66,17 +66,19 @@ export function vlessGrpcConn(
 }
 
 export async function getOrCreateVlessXtlsConnection(
-	response: ConnectionResponse[],
+	response: ConnectionResponse[] | null | undefined,
 	createConnection: () => Promise<ConnectionResponse>,
 ): Promise<ConnectionResponse> {
+	if (!response || response.length === 0) {
+		return await createConnection();
+	}
+
 	const vlessXtlsConnections = response.filter((conn) => {
 		if (isXrayResponse(conn.proto)) {
 			return conn.proto.Xray === "VlessXtls";
 		}
 		return false;
 	});
-
-	console.log("VLESS XTLS", vlessXtlsConnections[1]);
 
 	if (vlessXtlsConnections.length > 0) {
 		return vlessXtlsConnections[0];
@@ -86,9 +88,13 @@ export async function getOrCreateVlessXtlsConnection(
 }
 
 export async function getOrCreateVlessGrpcConnection(
-	response: ConnectionResponse[],
+	response: ConnectionResponse[] | null | undefined,
 	createConnection: () => Promise<ConnectionResponse>,
 ): Promise<ConnectionResponse> {
+	if (!response || response.length === 0) {
+		return await createConnection();
+	}
+
 	const vlessGrpcConnections = response.filter((conn) => {
 		if (isXrayResponse(conn.proto)) {
 			return conn.proto.Xray === "VlessGrpc";
@@ -98,7 +104,6 @@ export async function getOrCreateVlessGrpcConnection(
 
 	if (vlessGrpcConnections.length > 0) {
 		console.log("VLESS GRPC conn", vlessGrpcConnections[0]);
-
 		return vlessGrpcConnections[0];
 	}
 

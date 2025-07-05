@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon src/bot.ts",
-    "start": "ts-node src/bot.ts"
+    "start": "ts-node src/bot.ts",
+    "build": "tsc"
   },
   "keywords": [],
   "author": "",

@@ -217,18 +217,26 @@ export class BotState {
   }
 
   async getUserConnections(userId: string): Promise<ConnectionResponse[]> {
-    const res = await this.api.get<{
-      status: number;
-      message: string;
-      response: ConnectionsResponseEntryRaw[];
-    }>(`/user/connections?user_id=${userId}`);
+    try {
+      const res = await this.api.get<{
+        status: number;
+        message: string;
+        response: ConnectionsResponseEntryRaw[];
+      }>(`/user/connections?user_id=${userId}`);
 
-    if (res.data.status !== 200) return [];
+      if (res.data.status !== 200) return [];
 
-    return res.data.response.map(([id, conn]) => ({
-      ...conn,
-      id,
-    }));
+      return res.data.response.map(([id, conn]) => ({
+        ...conn,
+        id,
+      }));
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 404) {
+        return [];
+      }
+
+      throw err;
+    }
   }
 
   async getNodes(env: string): Promise<NodeResponse[] | null> {

@@ -1,3 +1,4 @@
+import QRCode from "qrcode";
 import { Context } from "telegraf";
 import { BotState } from "../../state";
 
@@ -29,6 +30,17 @@ export async function handleSubscriptionCallback(
 	}
 
 	const subLink = await botState.getSubLink(userEntry.id, linkFormat);
+
+	const qrBuffer = await QRCode.toBuffer(subLink, {
+		errorCorrectionLevel: "H",
+		type: "png",
+		margin: 10,
+		scale: 4,
+	});
+	await ctx.replyWithPhoto(
+		{ source: qrBuffer },
+		{ caption: `QR-код для ${linkFormat} подписки 🧷` },
+	);
 
 	await ctx.editMessageText(
 		`Ваша Subscription ссылка:\\(${linkFormat}\\)\n\`\`\`\n${subLink}\n\`\`\``,

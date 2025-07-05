@@ -6,6 +6,7 @@ export function wireguardConn(
 	connection: ConnectionResponse,
 	label: string,
 	privateKey: string,
+	dns: string[],
 ): string | null {
 	if (!("Wireguard" in connection.proto)) {
 		console.error("Wrong proto", connection.proto);
@@ -21,7 +22,7 @@ export function wireguardConn(
 	const config = `[Interface]
 PrivateKey = ${privateKey}
 Address    = ${clientIp}
-DNS        = 1.1.1.1
+DNS        = ${dns}
 
 [Peer]
 PublicKey           = ${serverPubKey}
@@ -36,17 +37,21 @@ PersistentKeepalive = 25
 }
 
 export async function getOrCreateWireguardConnection(
-	response: ConnectionResponse[],
+	response: ConnectionResponse[] | null | undefined,
 	nodeId: string,
 	createConnection: () => Promise<ConnectionResponse>,
 ): Promise<ConnectionResponse> {
-	const wireguardConns = response.filter((conn) => "Wireguard" in conn.proto);
-	const connection = wireguardConns.find((conn) => conn.node_id === nodeId);
+	if (!response || response.length === 0) {
+		return await createConnection();
+	}
+
+	const connection = response.find(
+		(conn) => "Wireguard" in conn.proto && conn.node_id === nodeId,
+	);
 
 	if (connection) {
 		return connection;
 	}
 
-	const newConn = await createConnection();
-	return newConn;
+	return await createConnection();
 }
