@@ -6,7 +6,7 @@ on:
 
 env:
   REGISTRY: frknorg
-  IMAGE_NAME: pony-bot
+  IMAGE_NAME: vpn-bot
 
 jobs:
   build-bot:
