@@ -1,6 +1,7 @@
 import { ConnectionResponse } from "../types/conn";
 
 export function wireguardConn(
+	host: string,
 	pubkey: string,
 	port: number,
 	connection: ConnectionResponse,
@@ -16,7 +17,6 @@ export function wireguardConn(
 	const wg = connection.proto.Wireguard;
 	const privkey = wg.param.keys.privkey;
 	const clientIp = `${wg.param.address.ip}/${wg.param.address.cidr}`;
-	const host = wg.param.address;
 
 	const config = `[Interface]
 PrivateKey = ${privkey}

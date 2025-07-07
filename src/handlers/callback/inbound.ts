@@ -206,6 +206,7 @@ export async function handleInboundCallback(ctx: Context, botState: BotState) {
 
 				if (ipv4 && pubkey && port && dns) {
 					const wgConfig = wireguardConn(
+						ipv4,
 						pubkey,
 						port,
 						connection,
