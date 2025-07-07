@@ -200,17 +200,16 @@ export async function handleInboundCallback(ctx: Context, botState: BotState) {
 			if (connNodeId) {
 				const node = await botState.getNode(connNodeId);
 				const ipv4 = node?.address;
-				const privkey = node?.inbounds.Wireguard.wg?.privkey;
+				const pubkey = node?.inbounds.Wireguard.wg?.pubkey;
 				const port = node?.inbounds.Wireguard.wg?.port;
 				const dns = node?.inbounds.Wireguard.wg?.dns;
 
-				if (ipv4 && privkey && port && dns) {
+				if (ipv4 && pubkey && port && dns) {
 					const wgConfig = wireguardConn(
-						ipv4,
+						pubkey,
 						port,
 						connection,
 						node?.label,
-						privkey,
 						dns,
 					);
 

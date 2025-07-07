@@ -1,11 +1,10 @@
 import { ConnectionResponse } from "../types/conn";
 
 export function wireguardConn(
-	ipv4: string,
+	pubkey: string,
 	port: number,
 	connection: ConnectionResponse,
 	label: string,
-	privateKey: string,
 	dns: string[],
 ): string | null {
 	if (!("Wireguard" in connection.proto)) {
@@ -15,17 +14,17 @@ export function wireguardConn(
 
 	const connId = connection.id;
 	const wg = connection.proto.Wireguard;
-	const serverPubKey = wg.param.keys.pubkey;
+	const privkey = wg.param.keys.privkey;
 	const clientIp = `${wg.param.address.ip}/${wg.param.address.cidr}`;
-	const host = ipv4;
+	const host = wg.param.address;
 
 	const config = `[Interface]
-PrivateKey = ${privateKey}
+PrivateKey = ${privkey}
 Address    = ${clientIp}
 DNS        = ${dns}
 
 [Peer]
-PublicKey           = ${serverPubKey}
+PublicKey           = ${pubkey}
 Endpoint            = ${host}:${port}
 AllowedIPs          = 0.0.0.0/0, ::/0
 PersistentKeepalive = 25
