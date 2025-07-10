@@ -110,6 +110,7 @@ export class BotState {
         telegram_id: telegramId,
         password: generatePassword(10),
         env: "tg",
+        limit: this.dailyLimitMb;
       });
 
       if (res.data.status === 200 && res.data.response?.id) {
