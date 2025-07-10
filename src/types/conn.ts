@@ -15,7 +15,7 @@ export type WireguardResponse = {
 				pubkey: string;
 			};
 			address: {
-				ip: string;
+				addr: string;
 				cidr: number;
 			};
 		};

@@ -16,7 +16,7 @@ export function wireguardConn(
 	const connId = connection.id;
 	const wg = connection.proto.Wireguard;
 	const privkey = wg.param.keys.privkey;
-	const clientIp = `${wg.param.address.ip}/${wg.param.address.cidr}`;
+	const clientIp = `${wg.param.address.addr}/${wg.param.address.cidr}`;
 
 	const config = `[Interface]
 PrivateKey = ${privkey}
