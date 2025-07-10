@@ -63,6 +63,15 @@ export class BotState {
     return undefined;
   }
 
+  findUserByTelegramUsername(username: String): User | undefined {
+    for (const user of this.users.values()) {
+      if (user.username === username) {
+        return user;
+      }
+    }
+    return undefined;
+  }
+
   async addUsers(users: User[]): Promise<void> {
     await this.mutex.runExclusive(() => {
       this.users.clear();

@@ -13,8 +13,9 @@ export const connectHandler = async (ctx: Context, botState: BotState) => {
 	}
 
 	console.log(user);
-	const userEntry = botState.findUserByTelegramId(user.id);
-	console.log(userEntry);
+	const userEntry =
+		botState.findUserByTelegramId(user.id) ||
+		botState.findUserByTelegramUsername(user.username);
 
 	if (!userEntry || userEntry.is_deleted) {
 		return ctx.reply("Для начала /start");
