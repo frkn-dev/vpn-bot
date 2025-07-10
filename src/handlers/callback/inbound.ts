@@ -43,7 +43,7 @@ export async function handleInboundCallback(ctx: Context, botState: BotState) {
 
 	const connectionData: CreateConnectionRequest = {
 		env: botState.getEnv(),
-		trial: true,
+		trial: false,
 		limit: botState.getDailyLimitMb(),
 		proto: tag,
 		user_id: userEntry.id,
