@@ -9,6 +9,7 @@ import { deleteHandler } from "./handlers/delete";
 import { startHandler } from "./handlers/start";
 import { subHandler } from "./handlers/sub";
 import { BotState } from "./state";
+import { TelegramError } from "telegraf";
 
 dotenv.config();
 
@@ -59,14 +60,22 @@ const botState = new BotState(API_BASE_URL, API_AUTH_TOKEN);
     try {
       const callbackQuery = ctx.callbackQuery;
 
-      if (!callbackQuery || !("data" in callbackQuery)) {
-        return await ctx.answerCbQuery();
+      try {
+        await ctx.answerCbQuery();
+      } catch (err) {
+        if (
+          err instanceof TelegramError &&
+          !err?.description?.includes("query is too old") &&
+          !err?.description?.includes("query ID is invalid")
+        ) {
+          console.error("answerCbQuery error:", err);
+        }
       }
 
+      if (!callbackQuery || !("data" in callbackQuery)) return;
+
       const data = callbackQuery.data;
-      if (!data) {
-        return await ctx.answerCbQuery();
-      }
+      if (!data) return;
 
       if (data.startsWith("proto_")) {
         await handleProtoCallback(ctx, botState);
@@ -75,11 +84,13 @@ const botState = new BotState(API_BASE_URL, API_AUTH_TOKEN);
       } else if (data.startsWith("sub_")) {
         await handleSubscriptionCallback(ctx, botState);
       } else {
-        await ctx.answerCbQuery("Неизвестная команда.");
+        await ctx.reply("Неизвестная команда.");
       }
     } catch (err) {
       console.error("Callback query error:", err);
-      await ctx.answerCbQuery("Произошла ошибка, попробуйте снова");
+      try {
+        await ctx.answerCbQuery("Произошла ошибка, попробуйте снова");
+      } catch (_) {}
     }
   });
 
