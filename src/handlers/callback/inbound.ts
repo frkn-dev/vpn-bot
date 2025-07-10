@@ -13,6 +13,7 @@ import {
 	wireguardConn,
 } from "../../proto";
 import { BotState } from "../../state";
+import { CreateConnectionRequest } from "../../types";
 
 export async function handleInboundCallback(ctx: Context, botState: BotState) {
 	const callbackQuery = ctx.callbackQuery;
@@ -28,6 +29,8 @@ export async function handleInboundCallback(ctx: Context, botState: BotState) {
 
 	const [_, tag, nodeId] = data.split("_");
 
+	console.log("NodeId - ", nodeId);
+
 	const user = ctx.from;
 	if (!user || !user.username) {
 		return ctx.answerCbQuery("Не удалось определить пользователя.");
@@ -38,13 +41,17 @@ export async function handleInboundCallback(ctx: Context, botState: BotState) {
 		return ctx.answerCbQuery("Для начала используйте /start");
 	}
 
-	const connectionData = {
+	const connectionData: CreateConnectionRequest = {
 		env: botState.getEnv(),
 		trial: true,
 		limit: botState.getDailyLimitMb(),
 		proto: tag,
 		user_id: userEntry.id,
 	};
+
+	if (tag === "Wireguard") {
+		connectionData.node_id = nodeId;
+	}
 
 	try {
 		const connections = await botState.getUserConnections(userEntry.id);
@@ -184,6 +191,7 @@ export async function handleInboundCallback(ctx: Context, botState: BotState) {
 				}
 			}
 		} else if (tag === "Wireguard" && nodeId) {
+			console.log("Create Connection request", connectionData);
 			const connection = await getOrCreateWireguardConnection(
 				connections,
 				nodeId,
@@ -192,7 +200,7 @@ export async function handleInboundCallback(ctx: Context, botState: BotState) {
 					if (res?.status === 200) {
 						return res.response;
 					}
-					throw new Error("Ошибка создания Wireguard-соединения");
+					throw new Error("Error creating Wireguard-connection");
 				},
 			);
 

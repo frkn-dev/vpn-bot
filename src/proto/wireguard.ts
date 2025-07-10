@@ -48,6 +48,8 @@ export async function getOrCreateWireguardConnection(
 		(conn) => "Wireguard" in conn.proto && conn.node_id === nodeId,
 	);
 
+	console.log("getOrCreateWireguardConnection: connection", connection);
+
 	if (connection) {
 		return connection;
 	}
