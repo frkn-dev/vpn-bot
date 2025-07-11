@@ -106,8 +106,8 @@ export class BotState {
   }
 
   async registerUserReq(
-    username: string,
     telegramId: number,
+    username: string,
   ): Promise<RegisterResult> {
     try {
       const res = await this.api.post<{
