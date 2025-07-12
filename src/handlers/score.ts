@@ -1,0 +1,73 @@
+import { BotState } from "../state";
+import { Context } from "telegraf";
+
+export const scoreHandler = async (ctx: Context, botState: BotState) => {
+	const user = ctx.from;
+	if (!user) return ctx.reply("/start для начала");
+
+	const userEntry = botState.findUserByTelegramId(user.id);
+	if (!userEntry || userEntry.is_deleted)
+		return ctx.reply("Для начала /start");
+
+	await ctx.reply("⚙️ Считаю метрики, подожди...");
+
+	try {
+		const env = botState.getEnv();
+		const nodes = await botState.getNodes(env);
+		if (!nodes || nodes.length === 0) {
+			return ctx.reply("❌ Нет доступных нод для оценки");
+		}
+
+		const scores = await Promise.all(
+			nodes.map(async (node) => {
+				const score = await botState.getNodeScore(node.uuid);
+
+				return {
+					hostname: node.hostname,
+					env: node.env,
+					label: node.label,
+					score: score?.score ?? null,
+					details: score?.details ?? null,
+					max_band: node.max_bandwidth_bps,
+					status: node.status,
+				};
+			}),
+		);
+
+		const header =
+			"📊 Статус серверов (чем ниже нагрузка, тем лучше):\n" +
+			"🟢 — низкая нагрузка\n" +
+			"🟡 — средняя нагрузка\n" +
+			"🔴 — высокая нагрузка\n\n";
+
+		const formatted = scores
+			.filter((s) => s.score !== null)
+			.sort((a, b) => b.score! - a.score!)
+			.map((s) => {
+				const score = s.score!;
+				const emoji = score < 0.4 ? "🟢" : score < 0.75 ? "🟡" : "🔴";
+				if (s.details) {
+					const bandwidthCurrentMbps = (
+						s.details.bandwidth / 1_000_000
+					).toFixed(1);
+					const bandwidthMaxMbps = (s.max_band / 1_000_000).toFixed(
+						1,
+					);
+
+					return `${emoji} <b>${s.status} - ${s.hostname}</b> (${s.env}) \n Используется: ${bandwidthCurrentMbps}/${bandwidthMaxMbps} Mbps \n Нагрузка: ${(score * 100).toFixed(1)} / 100%\n`;
+				} else {
+					return `${emoji} <b>${s.status} - ${s.hostname}</b> (${s.env}) \n Нагрузка: ${(score * 100).toFixed(1)} / 100%  \n Данные по полосе отсутствуют`;
+				}
+			})
+			.join("\n");
+
+		if (!formatted) {
+			return ctx.reply("❌ Не удалось получить скор ни для одной ноды");
+		}
+
+		return ctx.replyWithHTML(header + formatted);
+	} catch (err) {
+		console.error("❌ Ошибка при обработке scoreHandler:", err);
+		return ctx.reply("❌ Не удалось получить метрики");
+	}
+};

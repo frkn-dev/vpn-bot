@@ -1,15 +1,15 @@
 import * as dotenv from "dotenv";
-import { Telegraf } from "telegraf";
+import { Telegraf, TelegramError } from "telegraf";
 import { statHandler } from "./handlers";
 import { handleInboundCallback } from "./handlers/callback/inbound";
 import { handleProtoCallback } from "./handlers/callback/proto";
 import { handleSubscriptionCallback } from "./handlers/callback/sub";
 import { connectHandler } from "./handlers/connect";
 import { deleteHandler } from "./handlers/delete";
+import { scoreHandler } from "./handlers/score";
 import { startHandler } from "./handlers/start";
 import { subHandler } from "./handlers/sub";
 import { BotState } from "./state";
-import { TelegramError } from "telegraf";
 
 dotenv.config();
 
@@ -45,6 +45,7 @@ const botState = new BotState(API_BASE_URL, API_AUTH_TOKEN);
   bot.command("sub", (ctx) => subHandler(ctx, botState));
   bot.command("stat", (ctx) => statHandler(ctx, botState));
   bot.command("delete", (ctx) => deleteHandler(ctx, botState));
+  bot.command("status", (ctx) => scoreHandler(ctx, botState));
 
   bot.on("text", async (ctx) => {
     const message = ctx.message.text;

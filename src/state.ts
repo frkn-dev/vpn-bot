@@ -1,6 +1,7 @@
 import { Mutex } from "async-mutex";
 import axios from "axios";
 import { RegisterResult, User } from "./types";
+import { NodeScore } from "./types/node";
 
 import {
   ConnectionResponse,
@@ -275,6 +276,26 @@ export class BotState {
       return res.data.status === 200 ? res.data.response : null;
     } catch (e) {
       console.error("Error fetching nodes", e);
+      return null;
+    }
+  }
+
+  async getNodeScore(uuid: string): Promise<NodeScore | null> {
+    try {
+      const res = await this.api.get<{
+        status: number;
+        message: string;
+        response: NodeScore | null;
+      }>(`/node/score?node_id=${uuid}`);
+
+      if (res.data.status === 200 && res.data.response) {
+        return res.data.response;
+      } else {
+        console.warn(`⚠️ Failed to get score for node ${uuid}`, res.data);
+        return null;
+      }
+    } catch (err) {
+      console.error(`❌ Error fetching score for node ${uuid}`, err);
       return null;
     }
   }

@@ -91,5 +91,19 @@ export interface NodeResponse {
   address: string;
   label: string;
   status: NodeStatus;
+  max_bandwidth_bps: number;
+  cores: number;
   inbounds: Record<ProtoTag, Inbound>;
+}
+
+export interface NodeScore {
+  score: number;
+  status: NodeStatus;
+  details: {
+    cpu_usage: number;
+    loadavg: number;
+    label: string;
+    memory_ratio: number;
+    bandwidth: number;
+  };
 }
