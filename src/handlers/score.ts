@@ -41,11 +41,19 @@ export const scoreHandler = async (ctx: Context, botState: BotState) => {
 			"🔴 — высокая нагрузка\n\n";
 
 		const formatted = scores
-			.filter((s) => s.score !== null)
-			.sort((a, b) => b.score! - a.score!)
+			.sort((a, b) => {
+				if (a.score === null) return 1;
+				if (b.score === null) return -1;
+				return b.score - a.score;
+			})
 			.map((s) => {
-				const score = s.score!;
+				if (s.score === null) {
+					return `🔴 <b>Offline - ${s.hostname}</b> (${s.env})\n⛔ Нода недоступна\n`;
+				}
+
+				const score = s.score;
 				const emoji = score < 0.4 ? "🟢" : score < 0.75 ? "🟡" : "🔴";
+
 				if (s.details) {
 					const bandwidthCurrentMbps = (
 						s.details.bandwidth / 1_000_000
@@ -54,9 +62,9 @@ export const scoreHandler = async (ctx: Context, botState: BotState) => {
 						1,
 					);
 
-					return `${emoji} <b>${s.status} - ${s.hostname}</b> (${s.env}) \n Используется: ${bandwidthCurrentMbps}/${bandwidthMaxMbps} Mbps \n Нагрузка: ${(score * 100).toFixed(1)} / 100%\n`;
+					return `${emoji} <b>${s.status} - ${s.label}</b> (${s.env}) \nИспользуется: ${bandwidthCurrentMbps}/${bandwidthMaxMbps} Mbps \nНагрузка: ${(score * 100).toFixed(1)} / 100%\n`;
 				} else {
-					return `${emoji} <b>${s.status} - ${s.hostname}</b> (${s.env}) \n Нагрузка: ${(score * 100).toFixed(1)} / 100%  \n Данные по полосе отсутствуют`;
+					return `${emoji} <b>${s.status} - ${s.label}</b> (${s.env}) \nНагрузка: ${(score * 100).toFixed(1)} / 100% \nДанные по полосе отсутствуют`;
 				}
 			})
 			.join("\n");
