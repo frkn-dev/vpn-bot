@@ -55,7 +55,7 @@ export const scoreHandler = async (ctx: Context, botState: BotState) => {
 				const emoji = score < 0.4 ? "🟢" : score < 0.75 ? "🟡" : "🔴";
 
 				const bandwidthCurrentMbps = (
-					s.details?.bandwidth ?? 0 / 1_000_000
+					(s.details?.bandwidth ?? 0) / 1_000_000
 				).toFixed(1);
 				const bandwidthMaxMbps = (s.max_band / 1_000_000).toFixed(1);
 
