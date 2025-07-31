@@ -22,10 +22,22 @@ export class BotState {
   private env = process.env.ENV || "tg";
 
   private apiBaseUrl: string;
+  private googleScriptUrl: string;
+  private googleScriptToken: string;
+  private adminChatId: string;
   private api;
 
-  constructor(apiBaseUrl: string, apiAuthToken: string) {
+  constructor(
+    apiBaseUrl: string,
+    apiAuthToken: string,
+    googleScriptUrl: string,
+    googleScriptToken: string,
+    adminChatId: string,
+  ) {
     this.apiBaseUrl = apiBaseUrl;
+    this.googleScriptUrl = googleScriptUrl;
+    this.googleScriptToken = googleScriptToken;
+    this.adminChatId = adminChatId;
     this.api = axios.create({
       baseURL: apiBaseUrl,
       headers: {
@@ -40,6 +52,18 @@ export class BotState {
 
   getDailyLimitMb(): number {
     return this.dailyLimitMb;
+  }
+
+  getGoogleScriptUrl(): string {
+    return this.googleScriptUrl;
+  }
+
+  getGoogleScriptToken(): string {
+    return this.googleScriptToken;
+  }
+
+  getAdminChatId(): string {
+    return this.adminChatId;
   }
 
   getUser(username: string): User | undefined {

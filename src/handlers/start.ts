@@ -5,24 +5,34 @@ import { generateUsername } from "../utils";
 export const startHandler = async (ctx: Context, botState: BotState) => {
   const user = ctx.from;
 
-  if (!user) {
+  if (!user || !ctx.chat) {
     return ctx.reply("/start для начала");
   }
 
   const welcome_msg = [
-    "Добро пожаловать в *FRKN*\\!",
-    "Этот бот выдаёт ссылки на подключение к *VPN*\\.\n",
-    "*Android*: Hiddify",
-    "*Windows*: Hiddify, Clash Verge",
-    "*iOS, MacOS*: Clash Verge, Streisand, Foxray, Shadowrocket",
-    "*Linux*: Clash Verge",
-    "Больше [клиентов](https://github.com/XTLS/Xray-core?tab=readme-ov-file#gui-clients)",
-    "\nДоступно в сутки 1024 Мегабайта, команда /stat для просмотра статистики",
-    "\n\nПолучить *VPN* /connect или /sub",
+    "🚀 *Добро пожаловать в FRKN VPN\\!*",
+    "",
+    "🔐 Бесплатный \\(пока что\\) и быстрый VPN для вашей безопасности",
+    "Ни в коем случае не используйте наш впн для обхода блокировок и поиска экстремистких материалов\\, это закон",
+    "",
+    "📱 *Рекомендуемые приложения:*",
+    "• *Android* \\- Hiddify",
+    "• *iPhone/iPad* \\- Streisand, Shadowrocket",
+    "• *Windows* \\- Hiddify, Clash Verge",
+    "• *MacOS* \\- Clash Verge, Streisand",
+    "• *Linux* \\- Clash Verge",
+    "",
+    "💡 [Полный список клиентов](https://github.com/XTLS/Xray-core?tab=readme-ov-file#gui-clients)",
+    "",
+    "⚡ *Быстрый старт:*",
+    "🔗 /connect \\- Получить VPN\\-ключ",
+    "📈 /status \\- Проверить статус серверов/нагрузка",
+    "💎 /sub \\- Подписочная ссылка",
+    "🆘 /support \\- Помощь и поддержка",
+    "💬 /feedback \\- Оставить отзыв",
   ].join("\n");
 
   const username = user.username ?? generateUsername();
-
   const result = await botState.registerUserReq(user.id, username);
 
   switch (result.type) {
@@ -33,8 +43,10 @@ export const startHandler = async (ctx: Context, botState: BotState) => {
         telegram_id: user.id,
         is_deleted: false,
       });
-      await ctx.reply(welcome_msg, {
+
+      await ctx.telegram.sendMessage(ctx.chat.id, welcome_msg, {
         parse_mode: "MarkdownV2",
+        ...({ disable_web_page_preview: true } as any),
       });
       break;
 
@@ -49,8 +61,9 @@ export const startHandler = async (ctx: Context, botState: BotState) => {
           });
         }
       } else {
-        await ctx.reply(welcome_msg, {
+        await ctx.telegram.sendMessage(ctx.chat.id, welcome_msg, {
           parse_mode: "MarkdownV2",
+          ...({ disable_web_page_preview: true } as any),
         });
       }
       break;

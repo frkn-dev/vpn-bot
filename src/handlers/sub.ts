@@ -18,7 +18,17 @@ export const subHandler = async (ctx: Context, botState: BotState) => {
 
   const keyboard: InlineKeyboardMarkup = await buildSubKeyboard();
 
-  return ctx.reply("Выбери Тип подписки:", {
-    reply_markup: keyboard,
-  });
+  return ctx.reply(
+    "📋 *Выберите тип подписки:*\n\n" +
+      "📄 *Plain* \\- Обычная ссылка \\(рекомендуется\\)\n" +
+      "▫️ Подходит для: v2rayN \\(Windows\\), Shadowrocket, Streisand, FoxRay \\(iOS, MacOS\\), Nekoray, Hiddify и других\n\n" +
+      "⚙️ *Clash* \\- Конфигурационный файл\n" +
+      "▫️ Подходит для: Clash Verge, Clash Meta, Stash \\(iOS\\), Hiddify и других\n\n" +
+      "💡 Если сомневаетесь \\- выбирайте *Plain*\n\n" +
+      "⚠️ *Важно:* чтобы в подписке появились сервера, сначала выберите нужные в разделе /connect \\!\\!\\!",
+    {
+      reply_markup: keyboard,
+      parse_mode: "MarkdownV2",
+    },
+  );
 };
