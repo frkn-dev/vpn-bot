@@ -96,12 +96,3 @@ function doGet(e) {
     .setMimeType(ContentService.MimeType.TEXT);
 }
 
-// Function to setup Properties (run once)
-function setupProperties() {
-  const properties = PropertiesService.getScriptProperties();
-  properties.setProperties({
-    'SECRET_TOKEN': 'super_secret_token_12345_change_me', // Change to your own
-    'SHEET_ID': 'YOUR_SHEET_ID_HERE' // Change to your sheet ID
-  });
-  console.log('Properties configured successfully');
-}
