@@ -1,0 +1,28 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  telegramId    BigInt?  @unique @map("telegram_id")
+  username      String   @unique
+  password      String
+  env           String   @default("tg")
+  dailyLimitMb  Int      @default(1024) @map("daily_limit_mb")
+  isDeleted     Boolean  @default(false) @map("is_deleted")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([telegramId])
+  @@index([username])
+  @@index([isDeleted])
+  @@map("users")
+}

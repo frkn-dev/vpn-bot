@@ -10,11 +10,13 @@ export const subHandler = async (ctx: Context, botState: BotState) => {
     return ctx.reply("/start для начала");
   }
 
-  const userEntry = botState.findUserByTelegramId(user.id);
+  const userEntry = await botState.findUserByTelegramId(user.id);
 
   if (!userEntry || userEntry.is_deleted) {
     return ctx.reply("Для начала /start");
   }
+
+  console.log("User: ", userEntry);
 
   const keyboard: InlineKeyboardMarkup = await buildSubKeyboard();
 

@@ -24,26 +24,27 @@ export async function handleSubscriptionCallback(
 		return ctx.answerCbQuery("Не удалось определить пользователя.");
 	}
 
-	const userEntry = botState.findUserByTelegramId(user.id);
+	const userEntry = await botState.findUserByTelegramId(user.id);
 	if (!userEntry || userEntry.is_deleted) {
 		return ctx.answerCbQuery("Для начала используйте /start");
 	}
 
-	const subLink = await botState.getSubLink(userEntry.id, linkFormat);
+	const subLink = botState.getSubLink("TESTSTSTSTS", linkFormat);
 
 	const qrBuffer = await QRCode.toBuffer(subLink, {
 		errorCorrectionLevel: "H",
 		type: "png",
-		margin: 10,
-		scale: 4,
+		margin: 8,
+		scale: 6,
 	});
-	await ctx.replyWithPhoto(
-		{ source: qrBuffer },
-		{ caption: `QR-код для ${linkFormat} подписки 🧷` },
-	);
 
 	await ctx.editMessageText(
 		`Ваша Subscription ссылка:\\(${linkFormat}\\)\n\`\`\`\n${subLink}\n\`\`\``,
 		{ parse_mode: "MarkdownV2" },
+	);
+
+	await ctx.replyWithPhoto(
+		{ source: qrBuffer },
+		{ caption: `QR-код для ${linkFormat} подписки 🧷` },
 	);
 }

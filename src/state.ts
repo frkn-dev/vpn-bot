@@ -1,22 +1,18 @@
-import { Mutex } from "async-mutex";
+import { PrismaClient, User as PrismaUser } from "@prisma/client";
 import axios from "axios";
 import { RegisterResult, User } from "./types";
-import { NodeScore } from "./types/node";
-
 import {
   ConnectionResponse,
   ConnectionsResponseEntryRaw,
   CreateConnectionRequest,
   CreateConnectionResponse,
 } from "./types/conn";
-import { NodeResponse } from "./types/node";
-
+import { NodeResponse, NodeScore } from "./types/node";
 import { UserStat, UserStatRaw } from "./types/stat";
 import { generatePassword } from "./utils";
 
 export class BotState {
-  private users: Map<string, User> = new Map();
-  private mutex = new Mutex();
+  private prisma: PrismaClient;
 
   private dailyLimitMb = parseInt(process.env.DAILY_LIMIT_MB || "1024");
   private env = process.env.ENV || "tg";
@@ -44,6 +40,22 @@ export class BotState {
         Authorization: `Bearer ${apiAuthToken}`,
       },
     });
+
+    this.prisma = new PrismaClient({
+      log: ["query", "info", "warn", "error"],
+    });
+
+    this.connectToDatabase();
+  }
+
+  private async connectToDatabase(): Promise<void> {
+    try {
+      await this.prisma.$connect();
+      console.log("Connected to database successfully");
+    } catch (error) {
+      console.error("Error connecting to database:", error);
+      throw error;
+    }
   }
 
   getEnv(): string {
@@ -66,189 +78,143 @@ export class BotState {
     return this.adminChatId;
   }
 
-  getUser(username: string): User | undefined {
-    return this.users.get(username);
+  private mapPrismaUserToUser(prismaUser: PrismaUser): User {
+    return {
+      id: prismaUser.id,
+      telegram_id: prismaUser.telegramId
+        ? Number(prismaUser.telegramId)
+        : undefined,
+      username: prismaUser.username,
+      is_deleted: prismaUser.isDeleted,
+    };
   }
 
-  getUserByUsername(username: string): User | undefined {
-    for (const user of this.users.values()) {
-      if (user.username === username) {
-        return user;
+  async getUser(id: string): Promise<User | undefined> {
+    try {
+      const prismaUser = await this.prisma.user.findUnique({
+        where: { id },
+      });
+
+      if (prismaUser) {
+        return this.mapPrismaUserToUser(prismaUser);
       }
+    } catch (error) {
+      console.error("Error fetching user from database:", error);
     }
+
     return undefined;
   }
 
-  findUserByTelegramId(telegramId: number): User | undefined {
-    for (const user of this.users.values()) {
-      if (user.telegram_id === telegramId) {
-        return user;
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    try {
+      const prismaUser = await this.prisma.user.findUnique({
+        where: { username },
+      });
+
+      if (prismaUser) {
+        return this.mapPrismaUserToUser(prismaUser);
       }
+    } catch (error) {
+      console.error("Error fetching user by username from database:", error);
     }
+
     return undefined;
   }
 
-  findUserByTelegramUsername(username: String): User | undefined {
-    for (const user of this.users.values()) {
-      if (user.username === username) {
-        return user;
+  async findUserByTelegramId(telegramId: number): Promise<User | undefined> {
+    try {
+      const prismaUser = await this.prisma.user.findUnique({
+        where: { telegramId: BigInt(telegramId) },
+      });
+
+      if (prismaUser) {
+        return this.mapPrismaUserToUser(prismaUser);
       }
+    } catch (error) {
+      console.error("Error fetching user by telegram_id from database:", error);
     }
+
     return undefined;
   }
 
-  async addUsers(users: User[]): Promise<void> {
-    await this.mutex.runExclusive(() => {
-      this.users.clear();
-      for (const user of users) {
-        this.users.set(user.id, user);
-      }
-    });
-  }
-
-  async addUser(id: string, data: User): Promise<void> {
-    await this.mutex.runExclusive(() => {
-      this.users.set(id, data);
-    });
+  async findUserByTelegramUsername(
+    username: string,
+  ): Promise<User | undefined> {
+    return this.getUserByUsername(username);
   }
 
   async deleteUser(id: string): Promise<void> {
-    await this.mutex.runExclusive(() => {
-      const user = this.users.get(id);
-      if (user) {
-        this.users.set(id, { ...user, is_deleted: true });
-      }
-    });
+    try {
+      await this.prisma.user.update({
+        where: { id },
+        data: {
+          isDeleted: true,
+          updatedAt: new Date(),
+        },
+      });
+    } catch (error) {
+      console.error("Error deleting user in database:", error);
+      throw error;
+    }
   }
 
   async undeleteUser(id: string): Promise<void> {
-    await this.mutex.runExclusive(() => {
-      const user = this.users.get(id);
-      if (user) {
-        this.users.set(id, { ...user, is_deleted: false });
-      }
-    });
+    try {
+      await this.prisma.user.update({
+        where: { id },
+        data: {
+          isDeleted: false,
+          updatedAt: new Date(),
+        },
+      });
+    } catch (error) {
+      console.error("Error undeleting user in database:", error);
+      throw error;
+    }
   }
 
-  async registerUserReq(
+  async registerUser(
     telegramId: number,
     username: string,
   ): Promise<RegisterResult> {
     try {
-      const res = await this.api.post<{
-        status: number;
-        message: string;
-        response: { id: string };
-      }>("/user", {
-        username,
-        telegram_id: telegramId,
-        password: generatePassword(10),
-        env: "tg",
-        limit: this.dailyLimitMb,
+      const password = generatePassword(10);
+
+      const prismaUser = await this.prisma.user.create({
+        data: {
+          telegramId: BigInt(telegramId),
+          username: username,
+          password: password,
+          env: this.getEnv(),
+          dailyLimitMb: this.dailyLimitMb,
+        },
       });
 
-      if (res.data.status === 200 && res.data.response?.id) {
-        return { type: "ok", id: res.data.response.id };
-      } else {
-        console.warn("Registration failed:", res.data.message);
-        return { type: "error" };
-      }
-    } catch (err) {
-      if (axios.isAxiosError(err)) {
-        if (err.response?.status === 409) {
-          return { type: "already_exists" };
-        } else {
-          console.error(
-            `HTTP error ${err.response?.status}:`,
-            err.response?.data,
-          );
-        }
-      } else {
-        console.error("Unexpected error:", err);
+      return { type: "ok", id: prismaUser.id };
+    } catch (error: any) {
+      console.error("Registration error:", error);
+
+      if (error.code === "P2002") {
+        return { type: "already_exists" };
       }
 
       return { type: "error" };
     }
   }
 
-  async deleteUserReq(userId: string): Promise<RegisterResult> {
+  async getUsers(): Promise<User[]> {
     try {
-      const res = await this.api.delete<{
-        status: number;
-        message: string;
-        response: { id: string };
-      }>("/user", {
-        params: { user_id: userId },
+      const prismaUsers = await this.prisma.user.findMany({
+        orderBy: { createdAt: "asc" },
       });
 
-      if (res.data.status === 200 && res.data.response?.id) {
-        return { type: "ok", id: res.data.response.id };
-      } else {
-        console.warn("Delete failed:", res.data.message);
-        return { type: "error" };
-      }
-    } catch (err) {
-      if (axios.isAxiosError(err)) {
-        if (err.response?.status === 404) {
-          return { type: "not_found" };
-        } else {
-          console.error(
-            `HTTP error ${err.response?.status}:`,
-            err.response?.data,
-          );
-        }
-      } else {
-        console.error("Unexpected error:", err);
-      }
-      return { type: "error" };
+      return prismaUsers.map((prismaUser) =>
+        this.mapPrismaUserToUser(prismaUser),
+      );
+    } catch (error) {
+      console.error("Error fetching users from database:", error);
+      return [];
     }
-  }
-
-  async undeleteUserReq(userId: string): Promise<RegisterResult> {
-    try {
-      const res = await this.api.put<{
-        status: number;
-        message: string;
-        response: { id: string };
-      }>("/user", { is_deleted: false }, { params: { user_id: userId } });
-
-      if (res.data.status === 200 && res.data.response?.id) {
-        return { type: "ok", id: res.data.response.id };
-      } else {
-        console.warn("Undelete failed:", res.data.message);
-        return { type: "error" };
-      }
-    } catch (err) {
-      if (axios.isAxiosError(err)) {
-        if (err.response?.status === 409) {
-          return { type: "already_exists" };
-        } else {
-          console.error(
-            `HTTP error ${err.response?.status}:`,
-            err.response?.data,
-          );
-        }
-      } else {
-        console.error("Unexpected error:", err);
-      }
-
-      return { type: "error" };
-    }
-  }
-
-  async getUsersReq(): Promise<User[]> {
-    const res = await this.api.get<{
-      status: number;
-      message: string;
-      response: [string, User][];
-    }>("/users");
-
-    return res.data.response.map(([id, data]) => ({
-      id: id,
-      telegram_id: data.telegram_id,
-      username: data.username,
-      is_deleted: data.is_deleted,
-    }));
   }
 
   async getUserConnections(userId: string): Promise<ConnectionResponse[]> {
@@ -378,5 +344,9 @@ export class BotState {
       console.error("Error creating connection:", e);
       return null;
     }
+  }
+
+  async close(): Promise<void> {
+    await this.prisma.$disconnect();
   }
 }

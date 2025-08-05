@@ -56,6 +56,4 @@ export async function handleProtoCallback(ctx: Context, botState: BotState) {
   await ctx.editMessageText(`Доступные сервера ${proto}:`, {
     reply_markup: { inline_keyboard: buttons },
   });
-
-  await ctx.answerCbQuery();
 }

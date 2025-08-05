@@ -33,17 +33,10 @@ export const startHandler = async (ctx: Context, botState: BotState) => {
   ].join("\n");
 
   const username = user.username ?? generateUsername();
-  const result = await botState.registerUserReq(user.id, username);
+  const result = await botState.registerUser(user.id, username);
 
   switch (result.type) {
     case "ok":
-      await botState.addUser(result.id, {
-        id: result.id,
-        username: username,
-        telegram_id: user.id,
-        is_deleted: false,
-      });
-
       await ctx.telegram.sendMessage(ctx.chat.id, welcome_msg, {
         parse_mode: "MarkdownV2",
         ...({ disable_web_page_preview: true } as any),
@@ -51,15 +44,14 @@ export const startHandler = async (ctx: Context, botState: BotState) => {
       break;
 
     case "already_exists":
-      const userEntry = botState.findUserByTelegramId(user.id);
+      const userEntry = await botState.findUserByTelegramId(user.id);
       if (userEntry?.is_deleted) {
-        const res = await botState.undeleteUserReq(userEntry.id);
-        if (res.type === "ok") {
-          await botState.undeleteUser(userEntry.id);
-          await ctx.reply(welcome_msg + "\n\nWelcome back", {
-            parse_mode: "MarkdownV2",
-          });
-        }
+        await botState.undeleteUser(userEntry.id);
+
+        await ctx.telegram.sendMessage(ctx.chat.id, welcome_msg, {
+          parse_mode: "MarkdownV2",
+          ...({ disable_web_page_preview: true } as any),
+        });
       } else {
         await ctx.telegram.sendMessage(ctx.chat.id, welcome_msg, {
           parse_mode: "MarkdownV2",
