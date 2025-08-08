@@ -149,7 +149,7 @@ export class BotState {
         where: { id },
         data: {
           isDeleted: true,
-          updatedAt: new Date(),
+          modifiedAt: new Date(),
         },
       });
     } catch (error) {
@@ -164,7 +164,7 @@ export class BotState {
         where: { id },
         data: {
           isDeleted: false,
-          updatedAt: new Date(),
+          modifiedAt: new Date(),
         },
       });
     } catch (error) {
