@@ -26,17 +26,21 @@ export const statHandler = async (ctx: Context, botState: BotState) => {
 
 function formatTrafficStats(stats: UserStat[]): string {
 	const parts = stats.map((s) => {
-		return [
-			`🔹 ${s.type}`,
-			`  id: ${s.id}`,
-			`  limit: ${s.limit} MB`,
+		const lines = [`🔹 ${s.type}`, `  id: ${s.id}`];
+
+		if (s.trial) {
+			lines.push(`  limit: ${s.limit} MB`);
+		}
+
+		lines.push(
 			``,
 			`  Status: ${s.status}`,
 			``,
-			`  • Upload:   ${Math.round(s.stat.uplink / (1024 * 1024))} MB`,
-			`  • Download: ${Math.round(s.stat.downlink / (1024 * 1024))} MB`,
+			`  • ↑ Upload:   ${Math.round(s.stat.uplink / (1024 * 1024))} MB`,
+			`  • ↓ Download: ${Math.round(s.stat.downlink / (1024 * 1024))} MB`,
 			`  • Devices Online: ${s.stat.online}`,
-		].join("\n");
+		);
+		return lines.join("\n");
 	});
 
 	const totalUpload = Math.round(
@@ -45,11 +49,9 @@ function formatTrafficStats(stats: UserStat[]): string {
 	const totalDownload = Math.round(
 		stats.reduce((sum, s) => sum + s.stat.downlink, 0) / (1024 * 1024),
 	);
-
 	const overallStatus = stats.some((s) => s.status === "Active")
 		? "Active"
 		: "Expired";
-
 	return [
 		`Статистика трафика за сегодня:\n`,
 		parts.join("\n\n"),

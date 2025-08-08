@@ -29,7 +29,7 @@ export async function handleSubscriptionCallback(
 		return ctx.answerCbQuery("Для начала используйте /start");
 	}
 
-	const subLink = botState.getSubLink("TESTSTSTSTS", linkFormat);
+	const subLink = botState.getSubLink(userEntry.id, linkFormat);
 
 	const qrBuffer = await QRCode.toBuffer(subLink, {
 		errorCorrectionLevel: "H",

@@ -15,8 +15,7 @@ export async function handleProtoCallback(ctx: Context, botState: BotState) {
   const proto = data!.slice("proto_".length);
   const env = botState.getEnv();
 
-  const nodes =
-    (await botState.getNodes(env))?.filter((n) => n.status === "Online") ?? [];
+  const nodes = (await botState.getNodes(env)) ?? [];
 
   const inbounds = [];
 
