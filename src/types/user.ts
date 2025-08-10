@@ -1,5 +1,5 @@
 export interface User {
-  telegram_id: number;
+  telegram_id?: number;
   username: string;
   id: string;
   is_deleted: boolean;

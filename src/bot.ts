@@ -16,6 +16,7 @@ import { scoreHandler } from "./handlers/score";
 import { startHandler } from "./handlers/start";
 import { subHandler } from "./handlers/sub";
 import { BotState } from "./state";
+import QRCode from "qrcode";
 
 dotenv.config();
 
@@ -83,10 +84,10 @@ app.post(WEBHOOK_PATH, (req, res, next) => {
 app.use(bot.webhookCallback(WEBHOOK_PATH));
 
 // Global bot error handler
-bot.catch((err, ctx) => {
+bot.catch(async (err, ctx) => {
   console.error(`[BOT ERROR] User ${ctx.from?.id}:`, err);
   try {
-    ctx.reply("Произошла ошибка. Попробуйте позже.");
+    await ctx.reply("Произошла ошибка. Попробуйте позже.");
   } catch (e) {
     console.error("Failed to send error message:", e);
   }
@@ -108,28 +109,13 @@ process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
 
 (async () => {
-  try {
-    // Load users on startup
-    console.log("[STARTUP] Loading users...");
-    const users = await botState.getUsersReq();
-    await botState.addUsers(users);
-    console.log(`[STARTUP] Users loaded: ${users.length}`);
-
-    // Log user details only in development
-    if (process.env.NODE_ENV === "development") {
-      console.log("[DEBUG] Users:", JSON.stringify(users, null, 2));
-    }
-  } catch (err) {
-    console.error("[STARTUP] Error loading users:", err);
-    process.exit(1);
-  }
-
   // Command handlers
   bot.command("start", (ctx) => startHandler(ctx, botState));
   bot.command("connect", (ctx) => connectHandler(ctx, botState));
   bot.command("sub", (ctx) => subHandler(ctx, botState));
   bot.command("stat", (ctx) => statHandler(ctx, botState));
   bot.command("delete", (ctx) => deleteHandler(ctx, botState));
+  bot.command("stop", (ctx) => deleteHandler(ctx, botState));
   bot.command("status", (ctx) => scoreHandler(ctx, botState));
   bot.command("feedback", (ctx) => feedbackHandler(ctx, botState));
   bot.command("support", (ctx) => feedbackHandler(ctx, botState)); // Alias for feedback

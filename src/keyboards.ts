@@ -27,7 +27,7 @@ export async function buildProtoKeyboard(): Promise<any> {
       [
         { text: "Xray", callback_data: "proto_xray" },
         { text: "Wireguard", callback_data: "proto_wireguard" },
-        { text: "Shadowsocks", callback_data: "proto_ss" },
+        // { text: "Shadowsocks", callback_data: "proto_ss" },
       ],
     ],
   };

@@ -14,10 +14,10 @@ export const connectHandler = async (ctx: Context, botState: BotState) => {
 
 	console.log(user);
 
-	let userEntry = botState.findUserByTelegramId(user.id);
+	let userEntry = await botState.findUserByTelegramId(user.id);
 
 	if (!userEntry && user.username) {
-		userEntry = botState.findUserByTelegramUsername(user.username);
+		userEntry = await botState.findUserByTelegramUsername(user.username);
 	}
 
 	if (!userEntry || userEntry.is_deleted) {

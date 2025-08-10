@@ -10,11 +10,13 @@ export const subHandler = async (ctx: Context, botState: BotState) => {
     return ctx.reply("/start для начала");
   }
 
-  const userEntry = botState.findUserByTelegramId(user.id);
+  const userEntry = await botState.findUserByTelegramId(user.id);
 
   if (!userEntry || userEntry.is_deleted) {
     return ctx.reply("Для начала /start");
   }
+
+  console.log("User: ", userEntry);
 
   const keyboard: InlineKeyboardMarkup = await buildSubKeyboard();
 
@@ -25,7 +27,8 @@ export const subHandler = async (ctx: Context, botState: BotState) => {
       "⚙️ *Clash* \\- Конфигурационный файл\n" +
       "▫️ Подходит для: Clash Verge, Clash Meta, Stash \\(iOS\\), Hiddify и других\n\n" +
       "💡 Если сомневаетесь \\- выбирайте *Plain*\n\n" +
-      "⚠️ *Важно:* чтобы в подписке появились сервера, сначала выберите нужные в разделе /connect \\!\\!\\!",
+      "⚠️ *Важно:* чтобы в подписке появились сервера, сначала выберите нужные в разделе /connect \\!\\!\\!" +
+      " \n\n Для проверки статуса серверов команда /status ",
     {
       reply_markup: keyboard,
       parse_mode: "MarkdownV2",
