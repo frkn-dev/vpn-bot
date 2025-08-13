@@ -30,7 +30,7 @@ export async function connectWithMnemonic(
       }
     );
 
-    return connectResp.data;
+    return connectResp.data as ActiveConnection;
   } catch (error) {
     console.error("connectWithMnemonic failed:", error);
     return "Failed to connect to server. Please try again later.";

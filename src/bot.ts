@@ -1,7 +1,7 @@
 import * as dotenv from "dotenv";
 import express from "express";
 import { Telegraf, TelegramError } from "telegraf";
-import { statHandler } from "./handlers";
+import { awaitingMnemonic, siteHandler, statHandler } from "./handlers";
 import { handleInboundCallback } from "./handlers/callback/inbound";
 import { handleProtoCallback } from "./handlers/callback/proto";
 import { handleSubscriptionCallback } from "./handlers/callback/sub";
@@ -16,7 +16,7 @@ import { scoreHandler } from "./handlers/score";
 import { startHandler } from "./handlers/start";
 import { subHandler } from "./handlers/sub";
 import { BotState } from "./state";
-import QRCode from "qrcode";
+import { connectWithMnemonic } from "./site";
 
 dotenv.config();
 
@@ -31,7 +31,7 @@ const missingVars = requiredEnvVars.filter((varName) => !process.env[varName]);
 
 if (missingVars.length > 0) {
   throw new Error(
-    `Missing required environment variables: ${missingVars.join(", ")}`,
+    `Missing required environment variables: ${missingVars.join(", ")}`
   );
 }
 
@@ -51,7 +51,7 @@ const botState = new BotState(
   API_AUTH_TOKEN,
   GOOGLE_SCRIPT_URL,
   TOKEN,
-  ADMIN_CHAT_ID,
+  ADMIN_CHAT_ID
 );
 
 const app = express();
@@ -114,6 +114,7 @@ process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
   bot.command("connect", (ctx) => connectHandler(ctx, botState));
   bot.command("sub", (ctx) => subHandler(ctx, botState));
   bot.command("stat", (ctx) => statHandler(ctx, botState));
+  bot.command("site", (ctx) => siteHandler(ctx, botState));
   bot.command("delete", (ctx) => deleteHandler(ctx, botState));
   bot.command("stop", (ctx) => deleteHandler(ctx, botState));
   bot.command("status", (ctx) => scoreHandler(ctx, botState));
@@ -122,12 +123,42 @@ process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
 
   // Text message handler
   bot.on("text", async (ctx) => {
+    const userId = ctx.from.id;
     const message = ctx.message.text;
 
     // Handle feedback messages first
     const handledByFeedback = await handleFeedbackMessage(ctx, botState);
     if (handledByFeedback) {
       return;
+    }
+
+    // Handle site command
+    if (awaitingMnemonic[userId]) {
+      awaitingMnemonic[userId] = false; // reset
+
+      const words = message.trim().split(/\s+/);
+      if (words.length !== 12) {
+        return ctx.reply(
+          "Фраза должна содержать 12 слов. Попробуйте ещё раз командой /site"
+        );
+      }
+
+      try {
+        const data = await connectWithMnemonic(message.trim());
+        if (typeof data === "string") {
+          await ctx.reply(data);
+        } else {
+          await ctx.reply(
+            `Ваша ссылка: <code>${data.subscription_url}</code>`,
+            { parse_mode: "HTML" }
+          );
+        }
+      } catch (err) {
+        console.error("Ошибка в siteHandler:", err);
+        await ctx.reply("Ошибка при обработке фразы.");
+      } finally {
+        return;
+      }
     }
 
     // Handle unknown commands
@@ -139,8 +170,9 @@ process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
           "• /sub - Управление подпиской\n" +
           "• /status - Проверить статус\n" +
           "• /stat - Статистика\n" +
+          "• /site - Если оплачивали подписку на сайте\n" +
           "• /support - Поддержка и обратная связь\n" +
-          "• /delete - Удалить аккаунт",
+          "• /delete - Удалить аккаунт"
       );
     }
   });
@@ -218,7 +250,7 @@ process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
       `  Domain: ${DOMAIN}\n` +
       `  Port: ${PORT}\n` +
       `  Webhook path: ${WEBHOOK_PATH}\n` +
-      `  Environment: ${process.env.NODE_ENV || "development"}`,
+      `  Environment: ${process.env.NODE_ENV || "development"}`
   );
 })().catch((err) => {
   console.error("[STARTUP] Fatal error during startup:", err);

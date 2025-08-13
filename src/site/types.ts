@@ -16,7 +16,7 @@ interface SuccessResponse {
 export type LoginResponse = ErrorResponse | SuccessResponse;
 
 export type ActiveConnection = {
-  status: "active";
+  status: "active" | "inactive";
   subscription_url: string;
   ss_links: {
     country: string;
