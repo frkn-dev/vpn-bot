@@ -2,7 +2,7 @@ import axios from "axios";
 import { sha3_512 } from "js-sha3";
 import { ActiveConnection, LoginResponse } from "./types";
 
-const SITE_URL = "https://frkn.org";
+const SITE_URL = process.env.SITE_URL || "https://frkn.org";
 
 export async function connectWithMnemonic(
   mnemonic: string
