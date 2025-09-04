@@ -1,11 +1,10 @@
 import * as dotenv from "dotenv";
 import express from "express";
 import { Telegraf, TelegramError } from "telegraf";
-import { statHandler } from "./handlers";
-import { handleInboundCallback } from "./handlers/callback/inbound";
-import { handleProtoCallback } from "./handlers/callback/proto";
-import { handleSubscriptionCallback } from "./handlers/callback/sub";
-import { connectHandler } from "./handlers/connect";
+import { statHandler, subPlainHandler, subClashHandler } from "./handlers";
+import { handleSubscriptionPlainCallback } from "./handlers/callback/sub";
+import { handleSubscriptionClashCallback } from "./handlers/callback/clash";
+
 import { deleteHandler } from "./handlers/delete";
 import {
   feedbackHandler,
@@ -14,7 +13,6 @@ import {
 } from "./handlers/feedback";
 import { scoreHandler } from "./handlers/score";
 import { startHandler } from "./handlers/start";
-import { subHandler } from "./handlers/sub";
 import { BotState } from "./state";
 import QRCode from "qrcode";
 
@@ -87,7 +85,7 @@ app.use(bot.webhookCallback(WEBHOOK_PATH));
 bot.catch(async (err, ctx) => {
   console.error(`[BOT ERROR] User ${ctx.from?.id}:`, err);
   try {
-    await ctx.reply("Произошла ошибка. Попробуйте позже.");
+    await ctx.reply("Произошла ошибка. Попробуйте позже. @frkn_support");
   } catch (e) {
     console.error("Failed to send error message:", e);
   }
@@ -111,12 +109,12 @@ process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
 (async () => {
   // Command handlers
   bot.command("start", (ctx) => startHandler(ctx, botState));
-  bot.command("connect", (ctx) => connectHandler(ctx, botState));
-  bot.command("sub", (ctx) => subHandler(ctx, botState));
   bot.command("stat", (ctx) => statHandler(ctx, botState));
   bot.command("delete", (ctx) => deleteHandler(ctx, botState));
   bot.command("stop", (ctx) => deleteHandler(ctx, botState));
   bot.command("status", (ctx) => scoreHandler(ctx, botState));
+  bot.command("connect", (ctx) => subPlainHandler(ctx, botState));
+  bot.command("clash", (ctx) => subClashHandler(ctx, botState));
   bot.command("feedback", (ctx) => feedbackHandler(ctx, botState));
   bot.command("support", (ctx) => feedbackHandler(ctx, botState)); // Alias for feedback
 
@@ -135,10 +133,10 @@ process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
       await ctx.reply(
         "Неизвестная команда 🫣\n\nДоступные команды:\n" +
           "• /start - Начать работу\n" +
-          "• /connect - Подключиться к VPN\n" +
-          "• /sub - Управление подпиской\n" +
+          "• /connect - Получить VPN ссылку\n" +
+          "• /clash - Получить VPN Clash ссылку\n" +
           "• /status - Проверить статус\n" +
-          "• /stat - Статистика\n" +
+          "• /stat - Статистика использования\n" +
           "• /support - Поддержка и обратная связь\n" +
           "• /delete - Удалить аккаунт",
       );
@@ -174,12 +172,10 @@ process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
       // Route callback data to appropriate handlers
       if (data.startsWith("feedback_")) {
         await handleFeedbackCallback(ctx, botState);
-      } else if (data.startsWith("proto_")) {
-        await handleProtoCallback(ctx, botState);
-      } else if (data.startsWith("inbound_")) {
-        await handleInboundCallback(ctx, botState);
-      } else if (data.startsWith("sub_")) {
-        await handleSubscriptionCallback(ctx, botState);
+      } else if (data.startsWith("clash")) {
+        await handleSubscriptionClashCallback(ctx, botState);
+      } else if (data.startsWith("plain")) {
+        await handleSubscriptionPlainCallback(ctx, botState);
       } else {
         console.log(`[CALLBACK] Unknown callback data: ${data}`);
         await ctx.reply("Неизвестная команда.");
@@ -187,7 +183,7 @@ process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
     } catch (err) {
       console.error("[CALLBACK] Callback query error:", err);
       try {
-        await ctx.answerCbQuery("Произошла ошибка, попробуйте снова");
+        await ctx.answerCbQuery("Произошла ошибка, попробуйте позже");
       } catch (answerErr) {
         console.error("[CALLBACK] Failed to answer callback query:", answerErr);
       }
