@@ -1,5 +1,5 @@
-import { Context } from "telegraf";
-import { BotState } from "../state";
+import type { Context } from "telegraf";
+import type { BotState } from "../state";
 
 export const awaitingMnemonic: Record<number, boolean> = {};
 

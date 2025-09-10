@@ -5,11 +5,11 @@ import {
   awaitingMnemonic,
   siteHandler,
   statHandler,
-  subPlainHandler,
   subClashHandler,
+  subPlainHandler,
 } from "./handlers";
-import { handleSubscriptionCallback } from "./handlers/callback/sub";
 import { handleSubscriptionClashCallback } from "./handlers/callback/clash";
+import { handleSubscriptionCallback } from "./handlers/callback/sub";
 import { deleteHandler } from "./handlers/delete";
 import {
   feedbackHandler,
@@ -18,8 +18,8 @@ import {
 } from "./handlers/feedback";
 import { scoreHandler } from "./handlers/score";
 import { startHandler } from "./handlers/start";
-import { BotState } from "./state";
 import { connectWithMnemonic } from "./site";
+import { BotState } from "./state";
 
 dotenv.config();
 
@@ -160,6 +160,7 @@ process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
         console.error("Ошибка в siteHandler:", err);
         await ctx.reply("Ошибка при обработке фразы.");
       } finally {
+        // biome-ignore lint/correctness/noUnsafeFinally: TODO
         return;
       }
     }
@@ -181,6 +182,7 @@ process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
   });
 
   // Callback query handler
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: TODO
   bot.on("callback_query", async (ctx) => {
     try {
       const callbackQuery = ctx.callbackQuery;

@@ -1,4 +1,4 @@
-import { WireguardResponse, XrayResponse } from "./types/conn";
+import type { WireguardResponse, XrayResponse } from "./types/conn";
 
 export function generatePassword(length = 12): string {
   const chars =
