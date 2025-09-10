@@ -14,7 +14,6 @@ import { generatePassword } from "./utils";
 export class BotState {
   private prisma: PrismaClient;
 
-  private dailyLimitMb = parseInt(process.env.DAILY_LIMIT_MB || "1024");
   private env = process.env.ENV || "tg";
 
   private apiBaseUrl: string;
@@ -62,10 +61,6 @@ export class BotState {
     return this.env;
   }
 
-  getDailyLimitMb(): number {
-    return this.dailyLimitMb;
-  }
-
   getGoogleScriptUrl(): string {
     return this.googleScriptUrl;
   }
@@ -86,6 +81,8 @@ export class BotState {
         : undefined,
       username: prismaUser.username,
       is_deleted: prismaUser.isDeleted,
+      trial: prismaUser.isTrial,
+      expired_at: prismaUser.expiredAt,
     };
   }
 
@@ -186,7 +183,6 @@ export class BotState {
           username: username,
           password: password,
           env: this.getEnv(),
-          dailyLimitMb: this.dailyLimitMb,
         },
       });
 

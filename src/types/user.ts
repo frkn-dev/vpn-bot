@@ -3,6 +3,8 @@ export interface User {
   username: string;
   id: string;
   is_deleted: boolean;
+  trial: boolean;
+  expired_at: Date | null;
 }
 
 export type RegisterResult =
