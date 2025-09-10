@@ -20,7 +20,4 @@ export interface UserStat {
 	id: string;
 	stat: TrafficStat;
 	type: ProtoTag;
-	status: Status;
-	limit: number;
-	trial: boolean;
 }

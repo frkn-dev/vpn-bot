@@ -14,7 +14,6 @@ import { generatePassword } from "./utils";
 export class BotState {
   private prisma: PrismaClient;
 
-  private dailyLimitMb = parseInt(process.env.DAILY_LIMIT_MB || "1024");
   private env = process.env.ENV || "tg";
 
   private apiBaseUrl: string;
@@ -62,10 +61,6 @@ export class BotState {
     return this.env;
   }
 
-  getDailyLimitMb(): number {
-    return this.dailyLimitMb;
-  }
-
   getGoogleScriptUrl(): string {
     return this.googleScriptUrl;
   }
@@ -86,6 +81,8 @@ export class BotState {
         : undefined,
       username: prismaUser.username,
       is_deleted: prismaUser.isDeleted,
+      trial: prismaUser.isTrial,
+      expired_at: prismaUser.expiredAt,
     };
   }
 
@@ -186,7 +183,6 @@ export class BotState {
           username: username,
           password: password,
           env: this.getEnv(),
-          dailyLimitMb: this.dailyLimitMb,
         },
       });
 
@@ -202,28 +198,13 @@ export class BotState {
     }
   }
 
-  async getUsers(): Promise<User[]> {
-    try {
-      const prismaUsers = await this.prisma.user.findMany({
-        orderBy: { createdAt: "asc" },
-      });
-
-      return prismaUsers.map((prismaUser) =>
-        this.mapPrismaUserToUser(prismaUser),
-      );
-    } catch (error) {
-      console.error("Error fetching users from database:", error);
-      return [];
-    }
-  }
-
   async getUserConnections(userId: string): Promise<ConnectionResponse[]> {
     try {
       const res = await this.api.get<{
         status: number;
         message: string;
         response: ConnectionsResponseEntryRaw[];
-      }>(`/user/connections?user_id=${userId}`);
+      }>(`/user/connections?id=${userId}`);
 
       if (res.data.status !== 200) return [];
 
@@ -261,7 +242,7 @@ export class BotState {
         status: number;
         message: string;
         response: NodeResponse;
-      }>(`/node?node_id=${id}`);
+      }>(`/node?id=${id}`);
 
       return res.data.status === 200 ? res.data.response : null;
     } catch (e) {
@@ -276,7 +257,7 @@ export class BotState {
         status: number;
         message: string;
         response: NodeScore | null;
-      }>(`/node/score?node_id=${uuid}`);
+      }>(`/node/score?id=${uuid}`);
 
       if (res.data.status === 200 && res.data.response) {
         return res.data.response;
@@ -291,7 +272,7 @@ export class BotState {
   }
 
   getSubLink(userId: string, format: string): string {
-    const link = `${this.apiBaseUrl}/sub?user_id=${userId}&format=${format}`;
+    const link = `${this.apiBaseUrl}/sub?id=${userId}&format=${format}`;
     return link;
   }
 
@@ -301,20 +282,17 @@ export class BotState {
         status: number;
         message: string;
         response: UserStatRaw[];
-      }>(`/user/stat?user_id=${userId}`);
+      }>(`/user/stat?id=${userId}`);
 
       if (res.data.status !== 200 || !res.data.response) {
         return null;
       }
 
       const userStats: UserStat[] = res.data.response.map(
-        ([id, stat, type, status, limit, trial]) => ({
+        ([id, stat, type]) => ({
           id,
           stat,
           type,
-          status,
-          limit,
-          trial,
         }),
       );
 
