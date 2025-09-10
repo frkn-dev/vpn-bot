@@ -1,11 +1,15 @@
 import * as dotenv from "dotenv";
 import express from "express";
 import { Telegraf, TelegramError } from "telegraf";
-import { awaitingMnemonic, siteHandler, statHandler } from "./handlers";
-import { handleInboundCallback } from "./handlers/callback/inbound";
-import { handleProtoCallback } from "./handlers/callback/proto";
+import {
+  awaitingMnemonic,
+  siteHandler,
+  statHandler,
+  subPlainHandler,
+  subClashHandler,
+} from "./handlers";
 import { handleSubscriptionCallback } from "./handlers/callback/sub";
-import { connectHandler } from "./handlers/connect";
+import { handleSubscriptionClashCallback } from "./handlers/callback/clash";
 import { deleteHandler } from "./handlers/delete";
 import {
   feedbackHandler,
@@ -14,7 +18,6 @@ import {
 } from "./handlers/feedback";
 import { scoreHandler } from "./handlers/score";
 import { startHandler } from "./handlers/start";
-import { subHandler } from "./handlers/sub";
 import { BotState } from "./state";
 import { connectWithMnemonic } from "./site";
 
@@ -31,7 +34,7 @@ const missingVars = requiredEnvVars.filter((varName) => !process.env[varName]);
 
 if (missingVars.length > 0) {
   throw new Error(
-    `Missing required environment variables: ${missingVars.join(", ")}`
+    `Missing required environment variables: ${missingVars.join(", ")}`,
   );
 }
 
@@ -51,7 +54,7 @@ const botState = new BotState(
   API_AUTH_TOKEN,
   GOOGLE_SCRIPT_URL,
   TOKEN,
-  ADMIN_CHAT_ID
+  ADMIN_CHAT_ID,
 );
 
 const app = express();
@@ -111,8 +114,8 @@ process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
 (async () => {
   // Command handlers
   bot.command("start", (ctx) => startHandler(ctx, botState));
-  bot.command("connect", (ctx) => connectHandler(ctx, botState));
-  bot.command("sub", (ctx) => subHandler(ctx, botState));
+  bot.command("connect", (ctx) => subPlainHandler(ctx, botState));
+  bot.command("clash", (ctx) => subClashHandler(ctx, botState));
   bot.command("stat", (ctx) => statHandler(ctx, botState));
   bot.command("site", (ctx) => siteHandler(ctx, botState));
   bot.command("delete", (ctx) => deleteHandler(ctx, botState));
@@ -139,7 +142,7 @@ process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
       const words = message.trim().split(/\s+/);
       if (words.length !== 12) {
         return ctx.reply(
-          "Фраза должна содержать 12 слов. Попробуйте ещё раз командой /site"
+          "Фраза должна содержать 12 слов. Попробуйте ещё раз командой /site",
         );
       }
 
@@ -150,7 +153,7 @@ process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
         } else {
           await ctx.reply(
             `Ваша ссылка: <code>${data.subscription_url}</code>`,
-            { parse_mode: "HTML" }
+            { parse_mode: "HTML" },
           );
         }
       } catch (err) {
@@ -166,13 +169,13 @@ process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
       await ctx.reply(
         "Неизвестная команда 🫣\n\nДоступные команды:\n" +
           "• /start - Начать работу\n" +
-          "• /connect - Подключиться к VPN\n" +
-          "• /sub - Управление подпиской\n" +
+          "• /connect - Получить VPN ссылку\n" +
+          "• /clash - Получить VPN Clash ссылку\n" +
           "• /status - Проверить статус\n" +
           "• /stat - Статистика\n" +
           "• /site - Если оплачивали подписку на сайте\n" +
           "• /support - Поддержка и обратная связь\n" +
-          "• /delete - Удалить аккаунт"
+          "• /delete - Удалить аккаунт",
       );
     }
   });
@@ -206,12 +209,10 @@ process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
       // Route callback data to appropriate handlers
       if (data.startsWith("feedback_")) {
         await handleFeedbackCallback(ctx, botState);
-      } else if (data.startsWith("proto_")) {
-        await handleProtoCallback(ctx, botState);
-      } else if (data.startsWith("inbound_")) {
-        await handleInboundCallback(ctx, botState);
-      } else if (data.startsWith("sub_")) {
+      } else if (data.startsWith("plain")) {
         await handleSubscriptionCallback(ctx, botState);
+      } else if (data.startsWith("clash")) {
+        await handleSubscriptionClashCallback(ctx, botState);
       } else {
         console.log(`[CALLBACK] Unknown callback data: ${data}`);
         await ctx.reply("Неизвестная команда.");
@@ -250,7 +251,7 @@ process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
       `  Domain: ${DOMAIN}\n` +
       `  Port: ${PORT}\n` +
       `  Webhook path: ${WEBHOOK_PATH}\n` +
-      `  Environment: ${process.env.NODE_ENV || "development"}`
+      `  Environment: ${process.env.NODE_ENV || "development"}`,
   );
 })().catch((err) => {
   console.error("[STARTUP] Fatal error during startup:", err);

@@ -2,7 +2,7 @@ import QRCode from "qrcode";
 import { Context } from "telegraf";
 import { BotState } from "../../state";
 
-export async function handleSubscriptionCallback(
+export async function handleSubscriptionClashCallback(
 	ctx: Context,
 	botState: BotState,
 ) {
@@ -27,7 +27,7 @@ export async function handleSubscriptionCallback(
 		return ctx.answerCbQuery("Для начала используйте /start");
 	}
 
-	const subLink = botState.getSubLink(userEntry.id, "plain");
+	const subLink = botState.getSubLink(userEntry.id, "clash");
 
 	const qrBuffer = await QRCode.toBuffer(subLink, {
 		errorCorrectionLevel: "H",
@@ -43,6 +43,6 @@ export async function handleSubscriptionCallback(
 
 	await ctx.replyWithPhoto(
 		{ source: qrBuffer },
-		{ caption: `QR-код для VPN подписки 🧷` },
+		{ caption: `QR-код для VPN Clash подписки 🧷` },
 	);
 }

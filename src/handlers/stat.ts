@@ -28,13 +28,8 @@ function formatTrafficStats(stats: UserStat[]): string {
 	const parts = stats.map((s) => {
 		const lines = [`🔹 ${s.type}`, `  id: ${s.id}`];
 
-		if (s.trial) {
-			lines.push(`  limit: ${s.limit} MB`);
-		}
-
 		lines.push(
 			``,
-			`  Status: ${s.status}`,
 			``,
 			`  • ↑ Upload:   ${Math.round(s.stat.uplink / (1024 * 1024))} MB`,
 			`  • ↓ Download: ${Math.round(s.stat.downlink / (1024 * 1024))} MB`,
@@ -49,14 +44,11 @@ function formatTrafficStats(stats: UserStat[]): string {
 	const totalDownload = Math.round(
 		stats.reduce((sum, s) => sum + s.stat.downlink, 0) / (1024 * 1024),
 	);
-	const overallStatus = stats.some((s) => s.status === "Active")
-		? "Active"
-		: "Expired";
+
 	return [
 		`Статистика трафика за сегодня:\n`,
 		parts.join("\n\n"),
 		`\n🔻 Суммарно:`,
-		` Status: ${overallStatus}`,
 		``,
 		` ↑ Upload:   ${totalUpload} MB`,
 		` ↓ Download: ${totalDownload} MB`,

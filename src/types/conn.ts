@@ -1,7 +1,5 @@
 export type CreateConnectionRequest = {
 	env: string;
-	trial: boolean;
-	limit: number;
 	proto: string;
 	user_id: string;
 	node_id?: string;
@@ -29,11 +27,8 @@ export type XrayResponse = {
 
 export type ConnectionResponse = {
 	id: string;
-	trial: boolean;
-	limit: number;
 	env: string;
 	proto: WireguardResponse | XrayResponse;
-	status: string;
 	stat: {
 		downlink: number;
 		uplink: number;
