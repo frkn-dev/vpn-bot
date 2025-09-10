@@ -9,13 +9,13 @@
   },
   "scripts": {
     "postinstall": "prisma generate",
-    "start": "ts-node src/bot.ts",
-    "dev": "nodemon src/bot.ts",
+    "start": "ts-node src/index.ts",
+    "dev": "nodemon src/index.ts",
     "build": "tsc",
     "test": "npm-run-all test:*",
     "test:audit": "npm audit",
     "test:types": "tsc --noEmit --incremental false",
-    "test:lint": "biome lint . --diagnostic-level=error"
+    "test:lint": "biome check . --diagnostic-level=error"
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.4",

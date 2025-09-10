@@ -4,6 +4,11 @@
     "enabled": true,
     "indentStyle": "space"
   },
+  "javascript": {
+    "formatter": {
+      "semicolons": "always"
+    }
+  },
   "linter": {
     "enabled": true,
     "rules": {

@@ -1,6 +1,6 @@
 import type { Context } from "telegraf";
 import type { InlineKeyboardMarkup } from "telegraf/types";
-import { buildSubPlainKeyboard } from "../keyboards";
+import { buildSubPlainKeyboard } from "../shared/keyboards";
 import type { BotState } from "../state";
 
 export const subPlainHandler = async (ctx: Context, botState: BotState) => {

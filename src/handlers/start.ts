@@ -1,6 +1,6 @@
 import type { Context } from "telegraf";
+import { generateUsername } from "../shared/generate";
 import type { BotState } from "../state";
-import { generateUsername } from "../utils";
 
 export const startHandler = async (ctx: Context, botState: BotState) => {
   const user = ctx.from;
