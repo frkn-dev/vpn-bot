@@ -28,6 +28,7 @@ export const startHandler = async (ctx: Context, botState: BotState) => {
     "🔗 /connect \\- Получить VPN\\-ключ",
     "📈 /status \\- Проверить статус серверов/нагрузка",
     "💎 /sub \\- Подписочная ссылка",
+    "🌐 /site \\- Если оплачивали подписку на сайте",
     "🆘 /support \\- Помощь и поддержка",
     "💬 /feedback \\- Оставить отзыв",
   ].join("\n");
