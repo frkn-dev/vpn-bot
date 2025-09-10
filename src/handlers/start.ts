@@ -1,6 +1,6 @@
-import { Context } from "telegraf";
-import { BotState } from "../state";
-import { generateUsername } from "../utils";
+import type { Context } from "telegraf";
+import { generateUsername } from "../shared/generate";
+import type { BotState } from "../state";
 
 export const startHandler = async (ctx: Context, botState: BotState) => {
   const user = ctx.from;
@@ -39,6 +39,7 @@ export const startHandler = async (ctx: Context, botState: BotState) => {
   const result = await botState.registerUser(user.id, username);
 
   switch (result.type) {
+    // biome-ignore lint/suspicious/noFallthroughSwitchClause: TODO
     case "ok": {
       const userEntry = await botState.findUserByTelegramId(user.id);
       if (userEntry) {

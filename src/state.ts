@@ -1,15 +1,15 @@
-import { PrismaClient, User as PrismaUser } from "@prisma/client";
+import { PrismaClient, type User as PrismaUser } from "@prisma/client";
 import axios from "axios";
-import { RegisterResult, User } from "./types";
-import {
+import { generatePassword } from "./shared/generate";
+import type { RegisterResult, User } from "./types";
+import type {
   ConnectionResponse,
   ConnectionsResponseEntryRaw,
   CreateConnectionRequest,
   CreateConnectionResponse,
 } from "./types/conn";
-import { NodeResponse, NodeScore } from "./types/node";
-import { UserStat, UserStatRaw } from "./types/stat";
-import { generatePassword } from "./utils";
+import type { NodeResponse, NodeScore } from "./types/node";
+import type { UserStat, UserStatRaw } from "./types/stat";
 
 export class BotState {
   private prisma: PrismaClient;

@@ -21,4 +21,4 @@ COPY --from=builder /app/dist ./dist
 
 COPY prisma ./prisma
 
-CMD ["node", "dist/bot.js"]
+CMD ["node", "dist/index.js"]
