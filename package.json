@@ -14,9 +14,11 @@
     "build": "tsc",
     "test": "npm-run-all test:*",
     "test:audit": "npm audit",
-    "test:types": "tsc --noEmit --incremental false"
+    "test:types": "tsc --noEmit --incremental false",
+    "test:lint": "biome lint . --diagnostic-level=error"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.2.4",
     "@types/express": "5.0.3",
     "@types/qr-image": "3.2.9",
     "@types/qrcode": "1.5.5",
