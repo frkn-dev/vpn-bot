@@ -1,48 +1,18 @@
-# VPN Telegram Bot
+# FRKN VPN Telegram Bot
 
-A Telegram bot for managing VPN connections, implemented in TypeScript.
-Description
+This bot allows users to create and retrieve VPN configurations (VlessGrpc, VlessXtls, Vmess, Wireguard, etc.) via interactive commands and inline buttons. It communicates with a backend [API server](https://github.com/frkn-dev/pony) that manages users, nodes, and connections.
 
-This bot allows users to create and retrieve VPN configurations (VlessGrpc, VlessXtls, Vmess, Wireguard, etc.) via interactive commands and inline buttons. It communicates with a backend API server that manages users, nodes, and connections.
-Features, works with https://github.com/frkn-dev/pony
+## Dev-mode
 
-### Installation & Running
+```sh
+cp .env.example .env
+docker-compose up -d
+prisma db push
 
-Clone the repository:
-
-```git clone https://github.com/yourusername/vpn-telegram-bot.git
-cd vpn-telegram-bot
+npm run dev
+ngrok http 3000
 ```
 
-Install dependencies:
+### Requirements
 
-`npm install`
-
-Create a .env file with your environment variables:
-
-```
-API_BASE_URL=https://your-api-server.com/api
-API_AUTH_TOKEN=your_api_token_here
-BOT_TOKEN=your_telegram_bot_token_here
-
-```
-
-Start the bot:
-
-    npm run start
-
-## Bot Commands
-
-    /start — Start interacting with the bot
-
-    /connect — Select VPN protocol and server
-
-    /sub — Get VPN subscription/configuration
-
-    /stat — View traffic statistics
-
-    /delete — Delete (deactivate) user
-
-### License
-
-GNU GENERAL PUBLIC LICENSE Version 3
+[Node.js LTS](https://nodejs.org) and [pnpm](https://pnpm.io/installation#using-npm). IDE with [TypeScript](https://code.visualstudio.com/docs/languages/typescript) and [Biome](https://biomejs.dev/guides/integrate-in-editor/) support.
