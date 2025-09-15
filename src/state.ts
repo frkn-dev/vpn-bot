@@ -324,6 +324,24 @@ export class BotState {
     }
   }
 
+  async deleteConnection(id: string): Promise<boolean> {
+    try {
+      const res = await this.api.delete<{ status: number; message?: string }>(
+        `/connection?id=${id}`,
+      );
+
+      if (res.data.status === 200) {
+        return true;
+      } else {
+        console.warn("Failed to delete connection:", res.data.message);
+        return false;
+      }
+    } catch (e) {
+      console.error("Error deleting connection:", e);
+      return false;
+    }
+  }
+
   async close(): Promise<void> {
     await this.prisma.$disconnect();
   }
