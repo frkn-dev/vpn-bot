@@ -2,6 +2,19 @@ import * as dotenv from "dotenv";
 
 dotenv.config();
 
+const missingVars = [
+  "BOT_TOKEN",
+  "API_BASE_URL",
+  "API_AUTH_TOKEN",
+  "DOMAIN",
+].filter((varName) => !process.env[varName]);
+
+if (missingVars.length > 0) {
+  throw new Error(
+    `Missing required environment variables: ${missingVars.join(", ")}`,
+  );
+}
+
 export const BOT_TOKEN = process.env.BOT_TOKEN!;
 export const API_BASE_URL = process.env.API_BASE_URL!;
 export const API_AUTH_TOKEN = process.env.API_AUTH_TOKEN!;

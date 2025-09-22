@@ -2,21 +2,6 @@ import { bot } from "./bot";
 import { app } from "./server";
 import { DOMAIN, PORT, WEBHOOK_PATH } from "./shared/config";
 
-// #region Environment variables
-const missingVars = [
-  "BOT_TOKEN",
-  "API_BASE_URL",
-  "API_AUTH_TOKEN",
-  "DOMAIN",
-].filter((varName) => !process.env[varName]);
-
-if (missingVars.length > 0) {
-  throw new Error(
-    `Missing required environment variables: ${missingVars.join(", ")}`,
-  );
-}
-// #endregion
-
 app.use(bot.webhookCallback(WEBHOOK_PATH));
 app
   .listen(PORT, async () => {

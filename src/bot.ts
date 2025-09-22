@@ -48,6 +48,15 @@ bot.command("status", (ctx) => scoreHandler(ctx, botState));
 bot.command("feedback", (ctx) => feedbackHandler(ctx, botState));
 bot.command("support", (ctx) => feedbackHandler(ctx, botState)); // Alias for feedback
 
+// Menu
+bot.telegram.setMyCommands([
+  { command: "start", description: "Начать работу" },
+  { command: "connect", description: "Получить VPN ссылку" },
+  { command: "clash", description: "Получить VPN Clash ссылку" },
+  { command: "stat", description: "Статистика" },
+  { command: "site", description: "Если оплачивали подписку на сайте" },
+]);
+
 // Text message handler
 bot.on("text", async (ctx) => {
   const userId = ctx.from.id;
