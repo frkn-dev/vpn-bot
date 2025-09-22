@@ -68,7 +68,20 @@ export const startHandler = async (ctx: Context, botState: BotState) => {
       if (userEntry?.is_deleted) {
         await botState.undeleteUser(userEntry.id);
 
-        await ctx.telegram.sendMessage(ctx.chat.id, welcome_msg, {
+        const conn = await botState.createConnection({
+          env: botState.getEnv(),
+          proto: "VlessXtls",
+          user_id: userEntry.id,
+        });
+
+        if (conn) {
+          console.log(
+            `ReCreated connection ${conn.response} for user ${userEntry.id}`,
+          );
+        }
+        const welcome_back_msg = welcome_msg + "\nДобро пожаловать снова!";
+
+        await ctx.telegram.sendMessage(ctx.chat.id, welcome_back_msg, {
           parse_mode: "MarkdownV2",
           ...({ disable_web_page_preview: true } as any),
         });
