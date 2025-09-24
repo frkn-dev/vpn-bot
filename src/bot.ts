@@ -1,15 +1,13 @@
-import * as dotenv from "dotenv";
-import express from "express";
 import { Telegraf, TelegramError } from "telegraf";
 import {
   awaitingMnemonic,
   siteHandler,
   statHandler,
-  subPlainHandler,
   subClashHandler,
+  subPlainHandler,
 } from "./handlers";
-import { handleSubscriptionCallback } from "./handlers/callback/sub";
 import { handleSubscriptionClashCallback } from "./handlers/callback/clash";
+import { handleSubscriptionCallback } from "./handlers/callback/sub";
 import { deleteHandler } from "./handlers/delete";
 import {
   feedbackHandler,
@@ -18,38 +16,19 @@ import {
 } from "./handlers/feedback";
 import { scoreHandler } from "./handlers/score";
 import { startHandler } from "./handlers/start";
-import { BotState } from "./state";
+import {
+  ADMIN_CHAT_ID,
+  API_AUTH_TOKEN,
+  API_BASE_URL,
+  BOT_TOKEN,
+  GOOGLE_SCRIPT_URL,
+  TOKEN,
+} from "./shared/config";
 import { connectWithMnemonic } from "./site";
+import { BotState } from "./state";
 
-dotenv.config();
-
-// Validate required environment variables
-const requiredEnvVars = [
-  "BOT_TOKEN",
-  "API_BASE_URL",
-  "API_AUTH_TOKEN",
-  "DOMAIN",
-];
-const missingVars = requiredEnvVars.filter((varName) => !process.env[varName]);
-
-if (missingVars.length > 0) {
-  throw new Error(
-    `Missing required environment variables: ${missingVars.join(", ")}`,
-  );
-}
-
-const BOT_TOKEN = process.env.BOT_TOKEN!;
-const API_BASE_URL = process.env.API_BASE_URL!;
-const API_AUTH_TOKEN = process.env.API_AUTH_TOKEN!;
-const DOMAIN = process.env.DOMAIN!;
-const PORT = process.env.PORT || 3000;
-const WEBHOOK_PATH = process.env.WEBHOOK_PATH || "/telegram/webhook";
-const GOOGLE_SCRIPT_URL = process.env.GOOGLE_SCRIPT_URL || "GOOGLE_SCRIPT_URL";
-const TOKEN = process.env.FEEDBACK_SECRET_TOKEN || "FEEDBACK_TOKEN";
-const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID || "ADMIN_CHAT_ID";
-
-const bot = new Telegraf(BOT_TOKEN);
-const botState = new BotState(
+export const bot = new Telegraf(BOT_TOKEN);
+export const botState = new BotState(
   API_BASE_URL,
   API_AUTH_TOKEN,
   GOOGLE_SCRIPT_URL,
@@ -57,34 +36,129 @@ const botState = new BotState(
   ADMIN_CHAT_ID,
 );
 
-const app = express();
+// Command handlers
+bot.command("start", (ctx) => startHandler(ctx, botState));
+bot.command("connect", (ctx) => subPlainHandler(ctx, botState));
+bot.command("clash", (ctx) => subClashHandler(ctx, botState));
+bot.command("stat", (ctx) => statHandler(ctx, botState));
+bot.command("site", (ctx) => siteHandler(ctx, botState));
+bot.command("delete", (ctx) => deleteHandler(ctx, botState));
+bot.command("stop", (ctx) => deleteHandler(ctx, botState));
+bot.command("status", (ctx) => scoreHandler(ctx, botState));
+bot.command("feedback", (ctx) => feedbackHandler(ctx, botState));
+bot.command("support", (ctx) => feedbackHandler(ctx, botState)); // Alias for feedback
 
-// Middleware setup in correct order
-app.use(express.json());
+// Menu
+bot.telegram.setMyCommands([
+  { command: "start", description: "Начать работу" },
+  { command: "connect", description: "Получить VPN ссылку" },
+  { command: "clash", description: "Получить VPN Clash ссылку" },
+  { command: "stat", description: "Статистика" },
+  { command: "site", description: "Если оплачивали подписку на сайте" },
+]);
 
-// Logging middleware
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-  next();
+// Text message handler
+bot.on("text", async (ctx) => {
+  const userId = ctx.from.id;
+  const message = ctx.message.text;
+
+  // Handle feedback messages first
+  const handledByFeedback = await handleFeedbackMessage(ctx, botState);
+  if (handledByFeedback) {
+    return;
+  }
+
+  // Handle site command
+  if (awaitingMnemonic[userId]) {
+    awaitingMnemonic[userId] = false; // reset
+
+    const words = message.trim().split(/\s+/);
+    if (words.length !== 12) {
+      return ctx.reply(
+        "Фраза должна содержать 12 слов. Попробуйте ещё раз командой /site",
+      );
+    }
+
+    try {
+      const data = await connectWithMnemonic(message.trim());
+      if (typeof data === "string") {
+        await ctx.reply(data);
+      } else {
+        await ctx.reply(`Ваша ссылка: <code>${data.subscription_url}</code>`, {
+          parse_mode: "HTML",
+        });
+      }
+    } catch (err) {
+      console.error("Ошибка в siteHandler:", err);
+      await ctx.reply("Ошибка при обработке фразы.");
+    } finally {
+      // biome-ignore lint/correctness/noUnsafeFinally: TODO
+      return;
+    }
+  }
+
+  // Handle unknown commands
+  if (message.startsWith("/")) {
+    await ctx.reply(
+      "Неизвестная команда 🫣\n\nДоступные команды:\n" +
+        "• /start - Начать работу\n" +
+        "• /connect - Получить VPN ссылку\n" +
+        "• /clash - Получить VPN Clash ссылку\n" +
+        "• /status - Проверить статус\n" +
+        "• /stat - Статистика\n" +
+        "• /site - Если оплачивали подписку на сайте\n" +
+        "• /support - Поддержка и обратная связь\n" +
+        "• /delete - Удалить аккаунт",
+    );
+  }
 });
 
-// Health check endpoint
-app.get("/health", (req, res) => {
-  res.json({
-    status: "OK",
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-  });
-});
+// Callback query handler
+bot.on("callback_query", async (ctx) => {
+  try {
+    const callbackQuery = ctx.callbackQuery;
 
-// Webhook logging
-app.post(WEBHOOK_PATH, (req, res, next) => {
-  console.log(`[WEBHOOK] Received update:`, JSON.stringify(req.body, null, 2));
-  next();
-});
+    // Answer callback query to remove loading state
+    try {
+      await ctx.answerCbQuery();
+    } catch (err) {
+      // Ignore common callback query errors
+      if (
+        err instanceof TelegramError &&
+        !err?.description?.includes("query is too old") &&
+        !err?.description?.includes("query ID is invalid")
+      ) {
+        console.error("[CALLBACK] answerCbQuery error:", err);
+      }
+    }
 
-// Bot webhook handler
-app.use(bot.webhookCallback(WEBHOOK_PATH));
+    if (!callbackQuery || !("data" in callbackQuery)) return;
+
+    const data = callbackQuery.data;
+    if (!data) return;
+
+    console.log(`[CALLBACK] User ${ctx.from?.id} pressed: ${data}`);
+
+    // Route callback data to appropriate handlers
+    if (data.startsWith("feedback_")) {
+      await handleFeedbackCallback(ctx, botState);
+    } else if (data.startsWith("plain")) {
+      await handleSubscriptionCallback(ctx, botState);
+    } else if (data.startsWith("clash")) {
+      await handleSubscriptionClashCallback(ctx, botState);
+    } else {
+      console.log(`[CALLBACK] Unknown callback data: ${data}`);
+      await ctx.reply("Неизвестная команда.");
+    }
+  } catch (err) {
+    console.error("[CALLBACK] Callback query error:", err);
+    try {
+      await ctx.answerCbQuery("Произошла ошибка, попробуйте снова");
+    } catch (answerErr) {
+      console.error("[CALLBACK] Failed to answer callback query:", answerErr);
+    }
+  }
+});
 
 // Global bot error handler
 bot.catch(async (err, ctx) => {
@@ -94,166 +168,4 @@ bot.catch(async (err, ctx) => {
   } catch (e) {
     console.error("Failed to send error message:", e);
   }
-});
-
-// Graceful shutdown handlers
-const gracefulShutdown = async (signal: string) => {
-  console.log(`[SHUTDOWN] Received ${signal}, shutting down gracefully...`);
-  try {
-    await bot.telegram.deleteWebhook();
-    console.log("[SHUTDOWN] Webhook deleted successfully");
-  } catch (err) {
-    console.error("[SHUTDOWN] Error deleting webhook:", err);
-  }
-  process.exit(0);
-};
-
-process.on("SIGINT", () => gracefulShutdown("SIGINT"));
-process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
-
-(async () => {
-  // Command handlers
-  bot.command("start", (ctx) => startHandler(ctx, botState));
-  bot.command("connect", (ctx) => subPlainHandler(ctx, botState));
-  bot.command("clash", (ctx) => subClashHandler(ctx, botState));
-  bot.command("stat", (ctx) => statHandler(ctx, botState));
-  bot.command("site", (ctx) => siteHandler(ctx, botState));
-  bot.command("delete", (ctx) => deleteHandler(ctx, botState));
-  bot.command("stop", (ctx) => deleteHandler(ctx, botState));
-  bot.command("status", (ctx) => scoreHandler(ctx, botState));
-  bot.command("feedback", (ctx) => feedbackHandler(ctx, botState));
-  bot.command("support", (ctx) => feedbackHandler(ctx, botState)); // Alias for feedback
-
-  // Text message handler
-  bot.on("text", async (ctx) => {
-    const userId = ctx.from.id;
-    const message = ctx.message.text;
-
-    // Handle feedback messages first
-    const handledByFeedback = await handleFeedbackMessage(ctx, botState);
-    if (handledByFeedback) {
-      return;
-    }
-
-    // Handle site command
-    if (awaitingMnemonic[userId]) {
-      awaitingMnemonic[userId] = false; // reset
-
-      const words = message.trim().split(/\s+/);
-      if (words.length !== 12) {
-        return ctx.reply(
-          "Фраза должна содержать 12 слов. Попробуйте ещё раз командой /site",
-        );
-      }
-
-      try {
-        const data = await connectWithMnemonic(message.trim());
-        if (typeof data === "string") {
-          await ctx.reply(data);
-        } else {
-          await ctx.reply(
-            `Ваша ссылка: <code>${data.subscription_url}</code>`,
-            { parse_mode: "HTML" },
-          );
-        }
-      } catch (err) {
-        console.error("Ошибка в siteHandler:", err);
-        await ctx.reply("Ошибка при обработке фразы.");
-      } finally {
-        return;
-      }
-    }
-
-    // Handle unknown commands
-    if (message.startsWith("/")) {
-      await ctx.reply(
-        "Неизвестная команда 🫣\n\nДоступные команды:\n" +
-          "• /start - Начать работу\n" +
-          "• /connect - Получить VPN ссылку\n" +
-          "• /clash - Получить VPN Clash ссылку\n" +
-          "• /status - Проверить статус\n" +
-          "• /stat - Статистика\n" +
-          "• /site - Если оплачивали подписку на сайте\n" +
-          "• /support - Поддержка и обратная связь\n" +
-          "• /delete - Удалить аккаунт",
-      );
-    }
-  });
-
-  // Callback query handler
-  bot.on("callback_query", async (ctx) => {
-    try {
-      const callbackQuery = ctx.callbackQuery;
-
-      // Answer callback query to remove loading state
-      try {
-        await ctx.answerCbQuery();
-      } catch (err) {
-        // Ignore common callback query errors
-        if (
-          err instanceof TelegramError &&
-          !err?.description?.includes("query is too old") &&
-          !err?.description?.includes("query ID is invalid")
-        ) {
-          console.error("[CALLBACK] answerCbQuery error:", err);
-        }
-      }
-
-      if (!callbackQuery || !("data" in callbackQuery)) return;
-
-      const data = callbackQuery.data;
-      if (!data) return;
-
-      console.log(`[CALLBACK] User ${ctx.from?.id} pressed: ${data}`);
-
-      // Route callback data to appropriate handlers
-      if (data.startsWith("feedback_")) {
-        await handleFeedbackCallback(ctx, botState);
-      } else if (data.startsWith("plain")) {
-        await handleSubscriptionCallback(ctx, botState);
-      } else if (data.startsWith("clash")) {
-        await handleSubscriptionClashCallback(ctx, botState);
-      } else {
-        console.log(`[CALLBACK] Unknown callback data: ${data}`);
-        await ctx.reply("Неизвестная команда.");
-      }
-    } catch (err) {
-      console.error("[CALLBACK] Callback query error:", err);
-      try {
-        await ctx.answerCbQuery("Произошла ошибка, попробуйте снова");
-      } catch (answerErr) {
-        console.error("[CALLBACK] Failed to answer callback query:", answerErr);
-      }
-    }
-  });
-
-  // Start server and set webhook
-  const server = app.listen(PORT, async () => {
-    console.log(`[SERVER] Listening on port ${PORT}`);
-
-    try {
-      await bot.telegram.setWebhook(`${DOMAIN}${WEBHOOK_PATH}`);
-      console.log(`[WEBHOOK] Set webhook: ${DOMAIN}${WEBHOOK_PATH}`);
-    } catch (err) {
-      console.error("[WEBHOOK] Error setting webhook:", err);
-      process.exit(1);
-    }
-  });
-
-  // Handle server errors
-  server.on("error", (err) => {
-    console.error("[SERVER] Server error:", err);
-    process.exit(1);
-  });
-
-  console.log(
-    `[STARTUP] Bot started successfully\n` +
-      `  Domain: ${DOMAIN}\n` +
-      `  Port: ${PORT}\n` +
-      `  Webhook path: ${WEBHOOK_PATH}\n` +
-      `  Environment: ${process.env.NODE_ENV || "development"}`,
-  );
-})().catch((err) => {
-  console.error("[STARTUP] Fatal error during startup:", err);
-  process.exit(1);
 });

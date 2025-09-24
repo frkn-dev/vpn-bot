@@ -1,5 +1,5 @@
-import { Context } from "telegraf";
-import { BotState } from "../state";
+import type { Context } from "telegraf";
+import type { BotState } from "../state";
 
 export const deleteHandler = async (ctx: Context, botState: BotState) => {
   const user = ctx.from;

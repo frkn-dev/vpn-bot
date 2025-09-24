@@ -1,11 +1,11 @@
 import axios from "axios";
 import { sha3_512 } from "js-sha3";
-import { ActiveConnection, LoginResponse } from "./types";
+import type { ActiveConnection, LoginResponse } from "./types";
 
 const SITE_URL = process.env.SITE_URL || "https://frkn.org";
 
 export async function connectWithMnemonic(
-  mnemonic: string
+  mnemonic: string,
 ): Promise<string | ActiveConnection> {
   const passwordHash = sha3_512(mnemonic);
 
@@ -13,7 +13,7 @@ export async function connectWithMnemonic(
     const loginResp = await axios.post<LoginResponse>(
       SITE_URL + "/api/login",
       { password: passwordHash },
-      { headers: { "Content-Type": "application/json" } }
+      { headers: { "Content-Type": "application/json" } },
     );
 
     if (loginResp.data.status === "error") {
@@ -27,7 +27,7 @@ export async function connectWithMnemonic(
           "Content-Type": "application/json",
           Authorization: loginResp.data.token,
         },
-      }
+      },
     );
 
     return connectResp.data as ActiveConnection;
