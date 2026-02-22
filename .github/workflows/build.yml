@@ -27,7 +27,7 @@ jobs:
       - name: Update apt and install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y protobuf-compiler python3-pip
+          sudo apt-get install -y pkg-config libssl-dev protobuf-compiler python3-pip
           pip3 install ziglang
           cargo install --locked cargo-zigbuild
 
