@@ -27,9 +27,20 @@ jobs:
       - name: Update apt and install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y pkg-config libssl-dev protobuf-compiler python3-pip
+          sudo apt-get install -y  python3-pip
           pip3 install ziglang
           cargo install --locked cargo-zigbuild
+
+      - name: Install OpenSSL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libssl-dev
+
+      - name: Set OpenSSL environment for zigbuild
+        run: |
+          export OPENSSL_DIR=/usr
+          export OPENSSL_INCLUDE_DIR=/usr/include
+          export OPENSSL_LIB_DIR=/usr/lib/x86_64-linux-gnu
 
       - name: Add target
         run: rustup target add x86_64-unknown-linux-gnu
