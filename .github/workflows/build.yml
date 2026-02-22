@@ -1,4 +1,4 @@
-name: Release
+name: Build frkn-bot
 
 on:
   push:
@@ -6,21 +6,39 @@ on:
   pull_request:
     branches: ["main"]
 
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
-  build-bot:
-    runs-on: ubuntu-latest
+  build:
+    runs-on: ubuntu-22.04
 
     steps:
-      - name: Checkout
+      - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
         with:
-          node-version: 18
+          toolchain: nightly
+          default: true
+          override: true
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Update apt and install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler python3-pip
+          pip3 install ziglang
+          cargo install --locked cargo-zigbuild
 
-      - name: Build TypeScript
-        run: npm run build
+      - name: Add target
+        run: rustup target add x86_64-unknown-linux-gnu
+
+      - name: Build bot
+        run: cargo zigbuild --release --no-default-features --target x86_64-unknown-linux-gnu
+
+      - name: Upload frkn-bot binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: frkn-bot
+          path: target/x86_64-unknown-linux-gnu/release/frkn-bot
