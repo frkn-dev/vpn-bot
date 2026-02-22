@@ -46,7 +46,7 @@ async fn main() {
         println!("Chat ID: {:?}", msg.chat.id);
 
         let chat_id = msg.chat.id;
-        let text = "Вся инфа https://frkn.org или в канале @frkn_org";
+        let text = "Вся инфа https://frkn.org или в канале @frkn_org; Поддержка @frkn_support";
 
         match bot.send_message(chat_id, text).await {
             Ok(_) => println!("Message sent successfully"),

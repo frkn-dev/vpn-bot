@@ -1,13 +1,12 @@
 [Unit]
-Description=FRKN Telegram Bot (Rust)
+Description=FRKN Telegram Bot
 After=network.target
 
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/root/frkn-bot
-Environment=BOT_TOKEN=ТВОЙ_ТОКЕН
-ExecStart=/root/frkn-bot/target/release/frkn-bot
+WorkingDirectory=/opt/bot
+ExecStart=/opt/bot/frkn-bot
 Restart=always
 RestartSec=5
 
